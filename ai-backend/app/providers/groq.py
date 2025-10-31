@@ -1,4 +1,5 @@
 """Groq provider implementation"""
+import json
 import httpx
 from typing import Any, Dict, List
 from .base import (
@@ -73,12 +74,35 @@ class GroqProvider(LLMProvider):
         """Groq mirrors OpenAI responses; normalise to text."""
 
         if isinstance(message_content, list):
-            fragments = []
+            json_payload: Any = None
+            fragments: list[str] = []
+
             for part in message_content:
-                if isinstance(part, dict) and "text" in part:
-                    fragments.append(part["text"])
-            if fragments:
-                return "".join(fragments)
+                if not isinstance(part, dict):
+                    continue
+
+                part_type = part.get("type")
+
+                if part_type == "output_json":
+                    if "json" in part:
+                        json_payload = part["json"]
+                        break
+                    if "text" in part:
+                        return part["text"]
+
+                text_value = part.get("text")
+                if text_value:
+                    fragments.append(text_value)
+
+            if json_payload is not None:
+                if isinstance(json_payload, (dict, list)):
+                    try:
+                        return json.dumps(json_payload)
+                    except TypeError:
+                        return str(json_payload)
+                return str(json_payload)
+
+            return "".join(fragments)
 
         if isinstance(message_content, str):
             return message_content
