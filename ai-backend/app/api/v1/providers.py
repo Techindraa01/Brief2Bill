@@ -1,6 +1,6 @@
 """Provider management endpoints"""
-from fastapi import APIRouter, Depends, Header
-from typing import Optional, List
+from fastapi import APIRouter, Depends
+from typing import List
 from pydantic import BaseModel
 from ...services.provider_service import ProviderService
 from ...api.deps import get_provider_service
@@ -27,15 +27,8 @@ async def list_providers(
     provider_service: ProviderService = Depends(get_provider_service)
 ) -> List[str]:
     """List all enabled provider names"""
-    # Get all providers with details
-    providers_details = await provider_service.list_providers()
 
-    # Extract only the names of enabled providers
-    enabled_provider_names = [
-        p["name"] for p in providers_details if p["enabled"]
-    ]
-
-    return enabled_provider_names
+    return provider_service.list_provider_names()
 
 
 @router.get("/providers/{provider_name}/models")

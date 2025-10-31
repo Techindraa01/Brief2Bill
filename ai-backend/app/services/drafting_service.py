@@ -20,6 +20,7 @@ class DraftingService:
 
     def __init__(self, validation_service: ValidationService):
         self.validation_service = validation_service
+        self.document_schema = validation_service.schema
 
     def build_user_prompt(
         self,
@@ -71,11 +72,28 @@ Schema name: DocumentBundle"""
         )
 
         # Prepare prompt packet
+        schema_to_use = schema or self.document_schema
+        capabilities = provider.capabilities()
+
+        response_format = None
+        if schema_to_use and capabilities.supports_json_schema:
+            response_format = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "DocumentBundle",
+                    "schema": schema_to_use,
+                    "strict": True
+                }
+            }
+        elif capabilities.supports_plain_json:
+            response_format = {"type": "json_object"}
+
         prompt_packet = PromptPacket(
             system_prompt=SYSTEM_PROMPT,
             user_prompt=user_prompt,
+            model=model,
             temperature=0.2,
-            json_schema={"model": model, "schema": schema} if schema else {"model": model}
+            response_format=response_format
         )
 
         # Call provider

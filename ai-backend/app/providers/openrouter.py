@@ -1,6 +1,6 @@
 """OpenRouter provider implementation"""
 import httpx
-from typing import List
+from typing import Any, Dict, List
 from .base import (
     LLMProvider,
     PromptPacket,
@@ -34,15 +34,20 @@ class OpenRouterProvider(LLMProvider):
             {"role": "user", "content": prompt.user_prompt}
         ]
 
-        body = {
-            "model": prompt.json_schema.get("model", "openrouter/auto") if prompt.json_schema else "openrouter/auto",
+        body: Dict[str, Any] = {
+            "model": prompt.model,
             "messages": messages,
             "temperature": prompt.temperature
         }
 
-        # OpenRouter doesn't support strict JSON schema, use plain JSON mode
-        if prompt.json_schema:
-            body["response_format"] = {"type": "json_object"}
+        if prompt.response_format:
+            body["response_format"] = prompt.response_format
+
+        if prompt.tools:
+            body["tools"] = prompt.tools
+
+        if prompt.tool_choice:
+            body["tool_choice"] = prompt.tool_choice
 
         response = await self.http_client.post(
             self.BASE_URL,
@@ -54,14 +59,33 @@ class OpenRouterProvider(LLMProvider):
 
         data = response.json()
         choice = data["choices"][0]
+        message_content = choice["message"].get("content", "")
+        content_text = self._coerce_message_content(message_content)
 
         return LLMRawResponse(
-            content=choice["message"]["content"],
-            model=data.get("model", "unknown"),
+            content=content_text,
+            model=data.get("model", prompt.model),
             provider="openrouter",
             finish_reason=choice.get("finish_reason"),
             usage=data.get("usage")
         )
+
+    @staticmethod
+    def _coerce_message_content(message_content: Any) -> str:
+        """OpenRouter mirrors OpenAI responses; normalise to text."""
+
+        if isinstance(message_content, list):
+            fragments = []
+            for part in message_content:
+                if isinstance(part, dict) and "text" in part:
+                    fragments.append(part["text"])
+            if fragments:
+                return "".join(fragments)
+
+        if isinstance(message_content, str):
+            return message_content
+
+        return str(message_content)
 
     def capabilities(self) -> ProviderCapabilities:
         """OpenRouter supports plain JSON mode"""

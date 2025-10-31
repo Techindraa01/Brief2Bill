@@ -55,7 +55,7 @@ async def create_draft(
             status_code=400
         )
 
-    # Generate bundle (don't use JSON schema for now - OpenAI strict mode has limitations)
+    # Generate bundle using provider capabilities for structured output
     try:
         bundle = await drafting_service.generate_bundle(
             provider=provider,
@@ -63,8 +63,7 @@ async def create_draft(
             requirement=request.prompt,
             doc_types=request.prefer,
             currency=request.currency,
-            seller_defaults=request.defaults,
-            schema=None  # Use plain JSON mode for now
+            seller_defaults=request.defaults
         )
 
         return bundle

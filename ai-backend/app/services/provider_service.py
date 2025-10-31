@@ -41,6 +41,12 @@ class ProviderService:
         """Check if provider is enabled (has API key)"""
         return provider_name in self._providers
     
+    def list_provider_names(self) -> List[str]:
+        """Return the identifiers for all enabled providers."""
+
+        ordered = ["openai", "openrouter", "groq"]
+        return [name for name in ordered if self.is_provider_enabled(name)]
+
     async def list_providers(self) -> List[Dict]:
         """List all providers with their models"""
         result = []
