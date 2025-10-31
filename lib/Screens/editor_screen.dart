@@ -118,6 +118,20 @@ class _EditorScreenState extends State<EditorScreen> {
 
   String get _docType => (bundle['doc_type'] ?? 'QUOTATION').toString();
 
+  DateTime? _parseDate(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is DateTime) {
+      return value;
+    }
+    final raw = value.toString();
+    if (raw.isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(raw);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -457,17 +471,9 @@ class _EditorScreenState extends State<EditorScreen> {
       return false;
     }
 
-    final issueDate = dates['issue_date']?.toString();
-    DateTime? issue;
-    if (issueDate != null && issueDate.isNotEmpty) {
-      issue = DateTime.tryParse(issueDate);
-    }
-    DateTime? due = dates['due_date']?.toString().isNotEmpty == true
-        ? DateTime.tryParse(dates['due_date'])
-        : null;
-    DateTime? validTill = dates['valid_till']?.toString().isNotEmpty == true
-        ? DateTime.tryParse(dates['valid_till'])
-        : null;
+    final issue = _parseDate(dates['issue_date']);
+    final due = _parseDate(dates['due_date']);
+    final validTill = _parseDate(dates['valid_till']);
     if (issue != null) {
       if (due != null && due.isBefore(issue)) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -525,8 +531,8 @@ class _EditorScreenState extends State<EditorScreen> {
         return false;
       }
       for (final milestone in projectBrief['milestones'] as List) {
-        final start = DateTime.tryParse(milestone['start'].toString());
-        final end = DateTime.tryParse(milestone['end'].toString());
+        final start = _parseDate(milestone['start']);
+        final end = _parseDate(milestone['end']);
         if (start != null && end != null && end.isBefore(start)) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Milestone "${milestone['name']}" end date must be on or after start.')),
