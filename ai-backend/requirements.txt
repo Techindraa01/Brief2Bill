@@ -1,0 +1,10 @@
+fastapi
+httpx
+jsonschema
+orjson
+pydantic
+pydantic-settings
+redis
+slowapi
+structlog
+uvicorn

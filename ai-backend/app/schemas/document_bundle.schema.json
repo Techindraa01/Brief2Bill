@@ -2,18 +2,332 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "DocumentBundle",
   "type": "object",
+  "required": ["drafts"],
   "properties": {
     "drafts": {
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "title": {"type": "string"},
-          "content": {"type": "string"}
-        },
-        "required": ["title", "content"]
+        "$ref": "#/$defs/DocDraft"
       }
+    },
+    "project_brief": {
+      "$ref": "#/$defs/ProjectBrief"
     }
   },
-  "required": ["drafts"]
+  "$defs": {
+    "DocDraft": {
+      "type": "object",
+      "required": ["doc_type", "doc_meta", "parties", "items", "totals"],
+      "properties": {
+        "doc_type": {
+          "type": "string",
+          "enum": ["QUOTATION", "TAX_INVOICE", "PROFORMA_INVOICE"]
+        },
+        "doc_meta": {
+          "$ref": "#/$defs/DocMeta"
+        },
+        "parties": {
+          "$ref": "#/$defs/Parties"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LineItem"
+          }
+        },
+        "totals": {
+          "$ref": "#/$defs/Totals"
+        },
+        "terms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "payment": {
+          "$ref": "#/$defs/Payment"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "DocMeta": {
+      "type": "object",
+      "required": ["doc_id", "issue_date"],
+      "properties": {
+        "doc_id": {
+          "type": "string"
+        },
+        "issue_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "valid_till": {
+          "type": "string",
+          "format": "date"
+        },
+        "po_number": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        }
+      }
+    },
+    "Parties": {
+      "type": "object",
+      "required": ["seller", "buyer"],
+      "properties": {
+        "seller": {
+          "$ref": "#/$defs/Party"
+        },
+        "buyer": {
+          "$ref": "#/$defs/Party"
+        }
+      }
+    },
+    "Party": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "pincode": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string",
+          "default": "India"
+        },
+        "gstin": {
+          "type": "string"
+        },
+        "pan": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "contact_person": {
+          "type": "string"
+        }
+      }
+    },
+    "LineItem": {
+      "type": "object",
+      "required": ["description", "qty", "unit_price", "line_total"],
+      "properties": {
+        "sno": {
+          "type": "integer"
+        },
+        "description": {
+          "type": "string"
+        },
+        "hsn_sac": {
+          "type": "string"
+        },
+        "qty": {
+          "type": "number",
+          "minimum": 0
+        },
+        "unit": {
+          "type": "string",
+          "default": "nos"
+        },
+        "unit_price": {
+          "type": "number",
+          "minimum": 0
+        },
+        "discount": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "tax_rate": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "line_total": {
+          "type": "number"
+        },
+        "line_tax": {
+          "type": "number",
+          "default": 0
+        }
+      }
+    },
+    "Totals": {
+      "type": "object",
+      "required": ["subtotal", "grand_total", "currency"],
+      "properties": {
+        "subtotal": {
+          "type": "number"
+        },
+        "discount_total": {
+          "type": "number",
+          "default": 0
+        },
+        "tax_total": {
+          "type": "number",
+          "default": 0
+        },
+        "shipping": {
+          "type": "number",
+          "default": 0
+        },
+        "round_off": {
+          "type": "number",
+          "default": 0
+        },
+        "grand_total": {
+          "type": "number"
+        },
+        "currency": {
+          "type": "string",
+          "default": "INR"
+        },
+        "amount_in_words": {
+          "type": "string"
+        }
+      }
+    },
+    "Payment": {
+      "type": "object",
+      "properties": {
+        "bank_name": {
+          "type": "string"
+        },
+        "account_number": {
+          "type": "string"
+        },
+        "ifsc": {
+          "type": "string"
+        },
+        "account_holder": {
+          "type": "string"
+        },
+        "upi_id": {
+          "type": "string"
+        },
+        "payment_terms": {
+          "type": "string"
+        }
+      }
+    },
+    "ProjectBrief": {
+      "type": "object",
+      "required": ["title", "objective"],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "objective": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deliverables": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "milestones": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Milestone"
+          }
+        },
+        "timeline": {
+          "type": "string"
+        },
+        "billing_plan": {
+          "$ref": "#/$defs/BillingPlan"
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exclusions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Milestone": {
+      "type": "object",
+      "required": ["name", "duration"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "duration": {
+          "type": "string"
+        },
+        "deliverables": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "BillingPlan": {
+      "type": "object",
+      "properties": {
+        "structure": {
+          "type": "string"
+        },
+        "milestones": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "percentage": {
+                "type": "number"
+              },
+              "amount": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
+

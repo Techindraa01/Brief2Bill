@@ -1,5 +1,21 @@
-"""APIRouter include placeholder"""
+"""V1 API router aggregation"""
+from fastapi import APIRouter
+from .health import router as health_router
+from .providers import router as providers_router
+from .draft import router as draft_router
+from .validate import router as validate_router
+from .upi import router as upi_router
 
-def include_router(app):
-    # in FastAPI: app.include_router(...)
-    print("include v1 routes (placeholder)")
+
+def create_v1_router() -> APIRouter:
+    """Create and configure v1 API router"""
+    router = APIRouter(prefix="/v1")
+
+    # Include all sub-routers
+    router.include_router(health_router, tags=["health"])
+    router.include_router(providers_router, tags=["providers"])
+    router.include_router(draft_router, tags=["draft"])
+    router.include_router(validate_router, tags=["validation"])
+    router.include_router(upi_router, tags=["upi"])
+
+    return router

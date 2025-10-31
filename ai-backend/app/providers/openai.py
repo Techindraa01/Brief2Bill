@@ -1,4 +1,4 @@
-"""Groq provider implementation"""
+"""OpenAI provider implementation"""
 import httpx
 from typing import List
 from .base import (
@@ -10,38 +10,48 @@ from .base import (
 )
 
 
-class GroqProvider(LLMProvider):
-    """Groq API provider (OpenAI-compatible)"""
+class OpenAIProvider(LLMProvider):
+    """OpenAI API provider with JSON schema support"""
 
-    BASE_URL = "https://api.groq.com/openai/v1/chat/completions"
-    MODELS_URL = "https://api.groq.com/openai/v1/models"
+    BASE_URL = "https://api.openai.com/v1/chat/completions"
+    MODELS_URL = "https://api.openai.com/v1/models"
 
     def __init__(self, api_key: str, http_client: httpx.AsyncClient):
         super().__init__(api_key)
         self.http_client = http_client
-
+    
     async def generate(self, prompt: PromptPacket) -> LLMRawResponse:
-        """Generate completion using Groq API"""
+        """Generate completion using OpenAI API"""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
-
+        
         messages = [
             {"role": "system", "content": prompt.system_prompt},
             {"role": "user", "content": prompt.user_prompt}
         ]
-
+        
         body = {
-            "model": prompt.json_schema.get("model", "llama-3.1-70b-versatile") if prompt.json_schema else "llama-3.1-70b-versatile",
+            "model": prompt.json_schema.get("model", "gpt-4o-mini") if prompt.json_schema else "gpt-4o-mini",
             "messages": messages,
             "temperature": prompt.temperature
         }
-
-        # Groq doesn't support strict JSON schema, use plain JSON mode
-        if prompt.json_schema:
+        
+        # Use JSON schema enforcement if schema provided
+        if prompt.json_schema and "schema" in prompt.json_schema:
+            body["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "DocumentBundle",
+                    "strict": True,
+                    "schema": prompt.json_schema["schema"]
+                }
+            }
+        else:
+            # Use plain JSON mode
             body["response_format"] = {"type": "json_object"}
-
+        
         response = await self.http_client.post(
             self.BASE_URL,
             headers=headers,
@@ -49,28 +59,28 @@ class GroqProvider(LLMProvider):
             timeout=60.0
         )
         response.raise_for_status()
-
+        
         data = response.json()
         choice = data["choices"][0]
-
+        
         return LLMRawResponse(
             content=choice["message"]["content"],
             model=data["model"],
-            provider="groq",
+            provider="openai",
             finish_reason=choice.get("finish_reason"),
             usage=data.get("usage")
         )
-
+    
     def capabilities(self) -> ProviderCapabilities:
-        """Groq supports plain JSON mode"""
+        """OpenAI supports JSON schema enforcement"""
         return ProviderCapabilities(
-            supports_json_schema=False,
-            supports_function_call=False,
+            supports_json_schema=True,
+            supports_function_call=True,
             supports_plain_json=True
         )
-
+    
     async def list_models(self) -> List[ModelDescriptor]:
-        """Fetch available Groq models from API"""
+        """Fetch available OpenAI models from API"""
         try:
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
@@ -87,33 +97,27 @@ class GroqProvider(LLMProvider):
             data = response.json()
             models = []
 
-            # Process all models from API
+            # Filter for chat models (gpt-* models)
             for model_data in data.get("data", []):
                 model_id = model_data.get("id", "")
 
-                # Skip non-active models
-                if not model_data.get("active", True):
-                    continue
+                # Only include GPT chat models
+                if model_id.startswith("gpt-"):
+                    # Determine family from model ID
+                    family = "gpt-4" if "gpt-4" in model_id else "gpt-3.5"
 
-                # Determine family from model ID
-                family = "unknown"
-                if "llama" in model_id.lower():
-                    family = "llama"
-                elif "mixtral" in model_id.lower():
-                    family = "mixtral"
-                elif "gemma" in model_id.lower():
-                    family = "gemma"
+                    # Estimate context window based on model name
+                    context_window = 128000  # Default for newer models
+                    if "gpt-3.5" in model_id:
+                        context_window = 16385
 
-                # Get context window from API response
-                context_window = model_data.get("context_window", 8192)
-
-                models.append(ModelDescriptor(
-                    id=model_id,
-                    family=family,
-                    context_window=context_window,
-                    supports_json_schema=False,
-                    notes=f"Groq {model_id}"
-                ))
+                    models.append(ModelDescriptor(
+                        id=model_id,
+                        family=family,
+                        context_window=context_window,
+                        supports_json_schema=True,
+                        notes=f"OpenAI {model_id}"
+                    ))
 
             # Sort by family and ID for consistent ordering
             models.sort(key=lambda m: (m.family, m.id))
@@ -124,24 +128,25 @@ class GroqProvider(LLMProvider):
             # Fallback to hardcoded list if API call fails
             return [
                 ModelDescriptor(
-                    id="llama-3.1-70b-versatile",
-                    family="llama",
+                    id="gpt-4o",
+                    family="gpt-4",
                     context_window=128000,
-                    supports_json_schema=False,
-                    notes="Fast inference, versatile"
+                    supports_json_schema=True,
+                    notes="Most capable model"
                 ),
                 ModelDescriptor(
-                    id="llama-3.1-8b-instant",
-                    family="llama",
+                    id="gpt-4o-mini",
+                    family="gpt-4",
                     context_window=128000,
-                    supports_json_schema=False,
-                    notes="Ultra-fast, smaller model"
+                    supports_json_schema=True,
+                    notes="Fast and cost-effective"
                 ),
                 ModelDescriptor(
-                    id="mixtral-8x7b-32768",
-                    family="mixtral",
-                    context_window=32768,
-                    supports_json_schema=False,
-                    notes="Mixture of experts"
+                    id="gpt-4-turbo",
+                    family="gpt-4",
+                    context_window=128000,
+                    supports_json_schema=True,
+                    notes="Previous generation"
                 )
             ]
+
