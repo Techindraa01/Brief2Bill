@@ -3,7 +3,12 @@
 import json
 
 import pytest
-import requests
+
+try:  # pragma: no cover - optional dependency for manual tests
+    import requests
+except ModuleNotFoundError:  # pragma: no cover - keep skipped tests importable without requests
+    requests = None  # type: ignore[assignment]
+
 
 pytestmark = pytest.mark.skip("Manual integration tests that require a running server")
 
@@ -124,15 +129,19 @@ def test_validate():
     print()
 
 if __name__ == "__main__":
+    if requests is None:
+        raise SystemExit("The 'requests' library is required for these manual integration tests.")
+
     print("=== Brief2Bill API Tests ===\n")
-    
+
     test_health()
     test_version()
     test_providers()
     test_validate()
-    
+
     # Only test draft if we have an API key
     import os
+
     if os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY") or os.getenv("GROQ_API_KEY"):
         test_draft()
     else:

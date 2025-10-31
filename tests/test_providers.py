@@ -15,3 +15,5 @@ def test_providers_list():
     data = response.json()
     assert "providers" in data
     assert isinstance(data["providers"], list)
+    names = {provider["name"] for provider in data["providers"]}
+    assert names == {"openrouter", "groq", "openai", "gemini"}
