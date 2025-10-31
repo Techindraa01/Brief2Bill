@@ -1,100 +1,83 @@
-"""Provider registry and selection service"""
+"""Provider registry and selection management."""
+
+from __future__ import annotations
+
+from typing import Dict, List, Optional
+
 import httpx
-from typing import Dict, Optional, List
+
 from ..core.config import Settings
 from ..providers.base import LLMProvider, ModelDescriptor
+from ..providers.groq import GroqProvider
 from ..providers.openai import OpenAIProvider
 from ..providers.openrouter import OpenRouterProvider
-from ..providers.groq import GroqProvider
+from ..providers.gemini import GeminiProvider
 
 
 class ProviderSelection:
-    """Active provider selection"""
-    def __init__(self, provider: str, model: str, workspace_id: str = "default"):
+    def __init__(self, provider: str, model: str, workspace_id: str = "default") -> None:
         self.provider = provider
         self.model = model
         self.workspace_id = workspace_id
 
 
 class ProviderService:
-    """Manages provider instances and selection"""
-    
-    def __init__(self, settings: Settings, http_client: httpx.AsyncClient):
+    def __init__(self, settings: Settings, http_client: httpx.AsyncClient) -> None:
         self.settings = settings
         self.http_client = http_client
-        self._selections: Dict[str, ProviderSelection] = {}
         self._providers: Dict[str, LLMProvider] = {}
-        
-        # Initialize providers if keys available
-        if settings.openai_api_key:
-            self._providers["openai"] = OpenAIProvider(settings.openai_api_key, http_client)
+        self._selections: Dict[str, ProviderSelection] = {}
+
         if settings.openrouter_api_key:
             self._providers["openrouter"] = OpenRouterProvider(settings.openrouter_api_key, http_client)
         if settings.groq_api_key:
             self._providers["groq"] = GroqProvider(settings.groq_api_key, http_client)
-    
-    def get_provider(self, provider_name: str) -> Optional[LLMProvider]:
-        """Get provider instance by name"""
-        return self._providers.get(provider_name)
-    
-    def is_provider_enabled(self, provider_name: str) -> bool:
-        """Check if provider is enabled (has API key)"""
-        return provider_name in self._providers
-    
-    async def list_providers(self) -> List[Dict]:
-        """List all providers with their models"""
-        result = []
+        if settings.openai_api_key:
+            self._providers["openai"] = OpenAIProvider(settings.openai_api_key, http_client)
+        gemini_key = settings.gemini_key
+        if gemini_key:
+            self._providers["gemini"] = GeminiProvider(gemini_key, http_client)
 
-        for name in ["openai", "openrouter", "groq"]:
-            enabled = self.is_provider_enabled(name)
-            models = []
+    def get_provider(self, name: str) -> Optional[LLMProvider]:
+        return self._providers.get(name)
 
-            if enabled:
-                provider = self._providers[name]
-                models = [m.model_dump() for m in await provider.list_models()]
+    def is_provider_enabled(self, name: str) -> bool:
+        return name in self._providers
 
-            result.append({
-                "name": name,
-                "enabled": enabled,
-                "models": models
-            })
+    async def describe_providers(self) -> List[Dict[str, object]]:
+        providers: List[Dict[str, object]] = []
+        for name in ["openrouter", "groq", "openai", "gemini"]:
+            provider = self._providers.get(name)
+            enabled = provider is not None
+            models: List[ModelDescriptor] = []
+            if provider:
+                try:
+                    models = await provider.list_models()
+                except Exception:
+                    models = []
+            providers.append(
+                {
+                    "name": name,
+                    "enabled": enabled,
+                    "models": [model.model_dump() for model in models],
+                }
+            )
+        return providers
 
-        return result
-    
-    def set_selection(self, provider: str, model: str, workspace_id: str = "default"):
-        """Set active provider/model for workspace"""
-        if not self.is_provider_enabled(provider):
+    def set_selection(self, provider: str, model: str, workspace_id: str = "default") -> None:
+        if provider not in self._providers:
             raise ValueError(f"Provider {provider} is not enabled")
-        
         self._selections[workspace_id] = ProviderSelection(provider, model, workspace_id)
-    
+
     def get_selection(self, workspace_id: str = "default") -> ProviderSelection:
-        """Get active selection for workspace, fallback to defaults"""
         if workspace_id in self._selections:
             return self._selections[workspace_id]
-        
-        # Return default from settings
-        return ProviderSelection(
-            provider=self.settings.default_provider,
-            model=self.settings.default_model,
-            workspace_id=workspace_id
-        )
-    
-    def resolve_provider_and_model(
-        self,
-        provider_override: Optional[str] = None,
-        model_override: Optional[str] = None,
-        workspace_id: str = "default"
-    ) -> tuple[str, str]:
-        """Resolve provider and model with precedence: override > workspace > default"""
-        
+        return ProviderSelection(self.settings.default_provider, self.settings.default_model, workspace_id)
+
+    def resolve(self, workspace_id: str, provider_override: Optional[str], model_override: Optional[str]) -> ProviderSelection:
         if provider_override and model_override:
-            return provider_override, model_override
-        
+            return ProviderSelection(provider_override, model_override, workspace_id)
         selection = self.get_selection(workspace_id)
-        
         provider = provider_override or selection.provider
         model = model_override or selection.model
-        
-        return provider, model
-
+        return ProviderSelection(provider, model, workspace_id)

@@ -108,7 +108,7 @@ Schema name: DocumentBundle
 
 Design these endpoints. Implement with try/catch, validate inputs, and always return the envelopes below.
 
-## 5.1 GET /v1/healthz
+## 5.1 GET /v1/health
 
 * Purpose: liveness.
 * 200 Response:

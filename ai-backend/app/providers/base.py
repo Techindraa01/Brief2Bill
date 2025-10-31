@@ -1,15 +1,22 @@
 """LLMProvider base classes and models"""
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel
 
 
 class PromptPacket(BaseModel):
-    """Input to LLM provider"""
+    """Input payload forwarded to an LLM provider"""
+
     system_prompt: str
     user_prompt: str
+    model: str
     temperature: float = 0.2
-    json_schema: Optional[Dict[str, Any]] = None
+    response_format: Optional[Dict[str, Any]] = None
+    tools: Optional[List[Dict[str, Any]]] = None
+    tool_choice: Optional[Dict[str, Any]] = None
 
 
 class LLMRawResponse(BaseModel):

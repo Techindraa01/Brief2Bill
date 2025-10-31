@@ -1,6 +1,7 @@
 """OpenAI provider implementation"""
+import json
 import httpx
-from typing import List
+from typing import Any, Dict, List
 from .base import (
     LLMProvider,
     PromptPacket,
@@ -19,39 +20,34 @@ class OpenAIProvider(LLMProvider):
     def __init__(self, api_key: str, http_client: httpx.AsyncClient):
         super().__init__(api_key)
         self.http_client = http_client
-    
+
     async def generate(self, prompt: PromptPacket) -> LLMRawResponse:
         """Generate completion using OpenAI API"""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
-        
+
         messages = [
             {"role": "system", "content": prompt.system_prompt},
             {"role": "user", "content": prompt.user_prompt}
         ]
-        
-        body = {
-            "model": prompt.json_schema.get("model", "gpt-4o-mini") if prompt.json_schema else "gpt-4o-mini",
+
+        body: Dict[str, Any] = {
+            "model": prompt.model,
             "messages": messages,
             "temperature": prompt.temperature
         }
-        
-        # Use JSON schema enforcement if schema provided
-        if prompt.json_schema and "schema" in prompt.json_schema:
-            body["response_format"] = {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "DocumentBundle",
-                    "strict": True,
-                    "schema": prompt.json_schema["schema"]
-                }
-            }
-        else:
-            # Use plain JSON mode
-            body["response_format"] = {"type": "json_object"}
-        
+
+        if prompt.response_format:
+            body["response_format"] = prompt.response_format
+
+        if prompt.tools:
+            body["tools"] = prompt.tools
+
+        if prompt.tool_choice:
+            body["tool_choice"] = prompt.tool_choice
+
         response = await self.http_client.post(
             self.BASE_URL,
             headers=headers,
@@ -59,17 +55,60 @@ class OpenAIProvider(LLMProvider):
             timeout=60.0
         )
         response.raise_for_status()
-        
+
         data = response.json()
         choice = data["choices"][0]
-        
+        message_content = choice["message"].get("content", "")
+        content_text = self._coerce_message_content(message_content)
+
         return LLMRawResponse(
-            content=choice["message"]["content"],
-            model=data["model"],
+            content=content_text,
+            model=data.get("model", prompt.model),
             provider="openai",
             finish_reason=choice.get("finish_reason"),
             usage=data.get("usage")
         )
+
+    @staticmethod
+    def _coerce_message_content(message_content: Any) -> str:
+        """Normalise OpenAI message content to a string payload."""
+
+        if isinstance(message_content, list):
+            json_payload: Any = None
+            fragments: list[str] = []
+
+            # OpenAI json_schema responses return content parts with type metadata
+            for part in message_content:
+                if not isinstance(part, dict):
+                    continue
+
+                part_type = part.get("type")
+
+                if part_type == "output_json":
+                    if "json" in part:
+                        json_payload = part["json"]
+                        break
+                    if "text" in part:
+                        return part["text"]
+
+                text_value = part.get("text")
+                if text_value:
+                    fragments.append(text_value)
+
+            if json_payload is not None:
+                if isinstance(json_payload, (dict, list)):
+                    try:
+                        return json.dumps(json_payload)
+                    except TypeError:
+                        return str(json_payload)
+                return str(json_payload)
+
+            return "".join(fragments)
+
+        if isinstance(message_content, str):
+            return message_content
+
+        return str(message_content)
     
     def capabilities(self) -> ProviderCapabilities:
         """OpenAI supports JSON schema enforcement"""

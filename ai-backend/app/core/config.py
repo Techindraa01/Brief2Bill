@@ -1,55 +1,40 @@
-"""Pydantic settings for environment configuration"""
-from pydantic_settings import BaseSettings, SettingsConfigDict
+"""Application configuration via pydantic settings."""
+
+from __future__ import annotations
+
+from functools import lru_cache
 from typing import Optional
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Application settings loaded from environment variables"""
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=False,
-        extra="ignore"
-    )
-
-    # Environment
-    env: str = "development"
     app_name: str = "ai-draft-backend"
     app_version: str = "1.0.0"
+    app_env: str = "development"
 
-    # API Keys
-    openai_api_key: Optional[str] = None
-    openrouter_api_key: Optional[str] = None
-    groq_api_key: Optional[str] = None
-
-    # Default Provider Settings
     default_provider: str = "openrouter"
     default_model: str = "openrouter/auto"
 
-    # Redis
-    redis_url: str = "redis://localhost:6379/0"
-    redis_enabled: bool = False
+    openai_api_key: Optional[str] = None
+    openrouter_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
+    gemini_api_key: Optional[str] = None
+    google_api_key: Optional[str] = None
 
-    # Rate Limiting
-    rate_limit_enabled: bool = True
     rate_limit_per_minute: int = 5
-    rate_limit_per_day: int = 200
 
-    # Security
     api_key: Optional[str] = None
-
-    # Logging
     log_level: str = "INFO"
     log_json: bool = True
 
+    @property
+    def gemini_key(self) -> Optional[str]:
+        return self.gemini_api_key or self.google_api_key
 
-_settings: Optional[Settings] = None
 
-
+@lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    """Get cached settings instance"""
-    global _settings
-    if _settings is None:
-        _settings = Settings()
-    return _settings
+    return Settings()

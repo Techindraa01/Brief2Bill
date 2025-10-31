@@ -14,9 +14,9 @@ The FastAPI backend for Brief2Bill has been successfully implemented according t
    - ✅ Dynamic provider selection (override > workspace > default)
 
 2. **REST API Endpoints**
-   - ✅ `GET /v1/healthz` - Liveness check
+   - ✅ `GET /v1/health` - Liveness check
    - ✅ `GET /v1/version` - Version and defaults info
-   - ✅ `GET /v1/providers` - List all providers and models
+   - ✅ `GET /v1/providers` - List enabled provider identifiers
    - ✅ `POST /v1/providers/select` - Set active provider/model
    - ✅ `GET /v1/providers/active` - Get active provider/model
    - ✅ `POST /v1/draft` - Generate document bundle from requirements
