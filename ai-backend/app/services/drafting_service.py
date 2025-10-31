@@ -1,148 +1,122 @@
-"""Drafting service: orchestrates LLM calls with prompts"""
-import json
-import re
-from typing import Dict, Any, List, Optional
+"""Draft orchestration and structured bundle generation."""
+
+from __future__ import annotations
+
+from datetime import date
+from typing import Dict, List, Optional
+
+from ..models.document_models import DocumentBundle, DocDraft, Item, Party, Terms, Totals, Dates
 from ..providers.base import LLMProvider, PromptPacket
-from .validation import ValidationService
 from .repair import repair_bundle
+from .validation import ValidationService
 
-
-# System prompt as per spec
-SYSTEM_PROMPT = """You are an expert commercial documents drafter for India-focused SMEs.
-Output STRICT JSON matching the provided JSON Schema for DocumentBundle.
-Do not include markdown, comments, or extra keys.
-Prefer INR context, GST where applicable, 14–15 day validity for quotations, and 7-day due date for invoices unless user specifies otherwise.
-Use conservative defaults when ambiguous."""
+SYSTEM_PROMPT = (
+    "You are an expert commercial-docs drafter for India-focused SMEs.\n"
+    "Output STRICT JSON matching the provided JSON Schema for DocumentBundle.\n"
+    "No markdown, no comments, no extra keys.\n"
+    "Prefer INR context and GST. For quotations set valid_till = issue_date + 14..15 days; "
+    "for invoices set due_date = issue_date + 7 days unless specified.\n"
+    "Use conservative defaults when ambiguous."
+)
 
 
 class DraftingService:
-    """Service for generating document bundles from requirements"""
+    """Coordinates prompt construction, provider invocation, and validation."""
 
-    def __init__(self, validation_service: ValidationService):
-        self.validation_service = validation_service
-        self.document_schema = validation_service.schema
+    def __init__(self, validation: ValidationService) -> None:
+        self.validation = validation
+        self.schema = validation.schema
 
-    def build_user_prompt(
+    def _build_user_prompt(
         self,
         requirement: str,
         doc_types: Optional[List[str]] = None,
         currency: str = "INR",
-        seller_defaults: Optional[Dict[str, Any]] = None,
-        buyer_hint: Optional[str] = None
+        defaults: Optional[Dict[str, str]] = None,
+        buyer_hint: Optional[str] = None,
     ) -> str:
-        """Build user prompt from requirements"""
-
-        if doc_types is None:
-            doc_types = ["QUOTATION"]
-
-        prompt = f"""Requirement:
-{requirement}
-
-Preferences:
-- doc_types: {json.dumps(doc_types)}
-- currency: {currency}
-- seller_defaults: {json.dumps(seller_defaults) if seller_defaults else "null"}
-- buyer_hint: {buyer_hint if buyer_hint else "null"}
-
-Return: a single JSON object of type DocumentBundle.
-Schema name: DocumentBundle"""
-
-        return prompt
+        doc_types = doc_types or ["QUOTATION"]
+        return (
+            f"Requirement:\n{requirement}\n\n"
+            f"Preferences:\n"
+            f"- doc_types: {doc_types}\n"
+            f"- currency: {currency}\n"
+            f"- seller_defaults: {defaults or None}\n"
+            f"- buyer_hint: {buyer_hint or None}\n\n"
+            "Return exactly one JSON object of type DocumentBundle.\n"
+            "Schema name: DocumentBundle"
+        )
 
     async def generate_bundle(
         self,
-        provider: LLMProvider,
+        provider: Optional[LLMProvider],
         model: str,
         requirement: str,
         doc_types: Optional[List[str]] = None,
         currency: str = "INR",
-        seller_defaults: Optional[Dict[str, Any]] = None,
+        seller_defaults: Optional[Dict[str, str]] = None,
         buyer_hint: Optional[str] = None,
-        schema: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """Generate document bundle from requirement"""
+    ) -> Dict[str, any]:
+        """Generate a bundle using provider if available, else fallback blueprint."""
 
-        # Build prompts
-        user_prompt = self.build_user_prompt(
+        if provider is None:
+            return self._fallback_bundle(requirement, doc_types, currency, seller_defaults)
+
+        user_prompt = self._build_user_prompt(
             requirement=requirement,
             doc_types=doc_types,
             currency=currency,
-            seller_defaults=seller_defaults,
-            buyer_hint=buyer_hint
+            defaults=seller_defaults,
+            buyer_hint=buyer_hint,
         )
 
-        # Prepare prompt packet
-        schema_to_use = schema or self.document_schema
-        capabilities = provider.capabilities()
-
         response_format = None
-        if schema_to_use and capabilities.supports_json_schema:
+        capabilities = provider.capabilities()
+        if capabilities.supports_json_schema:
             response_format = {
                 "type": "json_schema",
-                "json_schema": {
-                    "name": "DocumentBundle",
-                    "schema": schema_to_use,
-                    "strict": True
-                }
+                "json_schema": {"name": "DocumentBundle", "schema": self.schema},
             }
         elif capabilities.supports_plain_json:
             response_format = {"type": "json_object"}
 
-        prompt_packet = PromptPacket(
+        packet = PromptPacket(
             system_prompt=SYSTEM_PROMPT,
             user_prompt=user_prompt,
             model=model,
             temperature=0.2,
-            response_format=response_format
+            response_format=response_format,
         )
 
-        # Call provider
-        response = await provider.generate(prompt_packet)
-
-        # Extract JSON from response
-        bundle = self._extract_json(response.content)
-
-        # Validate
-        is_valid, errors = self.validation_service.validate(bundle)
-
-        # If invalid, attempt repair
-        if not is_valid:
-            bundle = repair_bundle(bundle)
-
-            # Validate again after repair
-            is_valid, errors = self.validation_service.validate(bundle)
-
-            if not is_valid:
-                # Still invalid, but return repaired version
-                # Caller can decide what to do
-                pass
-
-        return bundle
-
-    def _extract_json(self, content: str) -> Dict[str, Any]:
-        """Extract JSON from LLM response, handling markdown code blocks"""
-
-        # Try direct parse first
         try:
-            return json.loads(content)
-        except json.JSONDecodeError:
-            pass
+            result = await provider.generate(packet)
+            payload = self.validation.extract_json(result.content)
+        except Exception:
+            payload = self._fallback_bundle(requirement, doc_types, currency, seller_defaults)
 
-        # Try to extract from markdown code block
-        json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', content, re.DOTALL)
-        if json_match:
-            try:
-                return json.loads(json_match.group(1))
-            except json.JSONDecodeError:
-                pass
+        is_valid, errors = self.validation.validate(payload)
+        if not is_valid:
+            payload = repair_bundle(payload)
 
-        # Try to find largest JSON object
-        json_match = re.search(r'\{.*\}', content, re.DOTALL)
-        if json_match:
-            try:
-                return json.loads(json_match.group(0))
-            except json.JSONDecodeError:
-                pass
+        return payload
 
-        # Fallback: return minimal valid bundle
-        return {"drafts": []}
+    def _fallback_bundle(
+        self,
+        requirement: str,
+        doc_types: Optional[List[str]],
+        currency: str,
+        seller_defaults: Optional[Dict[str, str]],
+    ) -> Dict[str, any]:
+        today = date.today()
+        draft = DocDraft(
+            doc_type=(doc_types or ["QUOTATION"])[0],
+            seller=Party(name=(seller_defaults or {}).get("name", "Seller")),
+            buyer=Party(name="Client"),
+            dates=Dates(issue_date=today),
+            items=[Item(description=requirement[:60] or "Scope", qty=1, unit_price=0)],
+            totals=Totals(subtotal=0, discount_total=0, tax_total=0, grand_total=0, round_off=0),
+            terms=Terms(bullets=["Payment due within 7 days"], title="Terms & Conditions"),
+            currency=currency,
+        )
+        bundle = DocumentBundle(drafts=[draft])
+        return bundle.model_dump(exclude_none=True)

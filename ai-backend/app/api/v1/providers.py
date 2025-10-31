@@ -1,105 +1,59 @@
-"""Provider management endpoints"""
-from fastapi import APIRouter, Depends
-from typing import List
-from pydantic import BaseModel
-from ...services.provider_service import ProviderService
-from ...api.deps import get_provider_service
+"""Provider discovery and selection endpoints."""
 
+from __future__ import annotations
+
+from typing import Any, Dict
+
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, Field
+
+from ...api.deps import get_provider_service
+from ...api.errors import APIError
+from ...services.provider_service import ProviderService
 
 router = APIRouter()
 
 
+class ProviderDescriptor(BaseModel):
+    name: str
+    enabled: bool
+    models: list[Dict[str, Any]]
+
+
+class ProvidersResponse(BaseModel):
+    providers: list[ProviderDescriptor]
+
+
 class ProviderSelectRequest(BaseModel):
-    """Request to select provider/model"""
-    provider: str
+    provider: str = Field(pattern="^(openrouter|groq|openai|gemini)$")
     model: str
     workspace_id: str = "default"
 
 
 class ProviderSelectResponse(BaseModel):
-    """Response from provider selection"""
-    ok: bool
-    active: dict
+    ok: bool = True
+    active: Dict[str, str]
 
 
-@router.get("/providers")
-async def list_providers(
-    provider_service: ProviderService = Depends(get_provider_service)
-) -> List[str]:
-    """List all enabled provider names"""
-
-    return provider_service.list_provider_names()
+@router.get("/providers", response_model=ProvidersResponse)
+async def list_providers(provider_service: ProviderService = Depends(get_provider_service)) -> ProvidersResponse:
+    providers = await provider_service.describe_providers()
+    return ProvidersResponse(providers=providers)
 
 
-@router.get("/providers/{provider_name}/models")
-async def list_provider_models(
-    provider_name: str,
-    provider_service: ProviderService = Depends(get_provider_service)
-):
-    """List available models for a specific provider"""
-    from ...api.errors import APIError
-
-    # Check if provider is enabled
-    if not provider_service.is_provider_enabled(provider_name):
-        raise APIError(
-            code="PROVIDER_NOT_ENABLED",
-            message=f"Provider '{provider_name}' is not enabled or does not exist",
-            status_code=404
-        )
-
-    # Get provider instance
-    provider = provider_service.get_provider(provider_name)
-
-    # Fetch models from provider
-    models = await provider.list_models()
-
-    return {
-        "provider": provider_name,
-        "models": [m.model_dump() for m in models]
-    }
-
-
-@router.post("/providers/select")
-async def select_provider(
-    request: ProviderSelectRequest,
-    provider_service: ProviderService = Depends(get_provider_service)
-):
-    """Set active provider/model for workspace"""
+@router.post("/providers/select", response_model=ProviderSelectResponse)
+async def select_provider(request: ProviderSelectRequest, provider_service: ProviderService = Depends(get_provider_service)) -> ProviderSelectResponse:
     try:
-        provider_service.set_selection(
-            provider=request.provider,
-            model=request.model,
-            workspace_id=request.workspace_id
-        )
-        
-        return {
-            "ok": True,
-            "active": {
-                "provider": request.provider,
-                "model": request.model,
-                "workspace_id": request.workspace_id
-            }
-        }
-    except ValueError as e:
-        from ...api.errors import APIError
-        raise APIError(
-            code="INVALID_PROVIDER",
-            message=str(e),
-            status_code=400
-        )
+        provider_service.set_selection(request.provider, request.model, request.workspace_id)
+    except ValueError as exc:  # provider not enabled
+        raise APIError(code="INVALID_PROVIDER", message=str(exc), status_code=400) from exc
+    return ProviderSelectResponse(active={"provider": request.provider, "model": request.model, "workspace_id": request.workspace_id})
 
 
 @router.get("/providers/active")
 async def get_active_provider(
-    workspace_id: str = "default",
-    provider_service: ProviderService = Depends(get_provider_service)
-):
-    """Get active provider/model for workspace"""
+    workspace_id: str = Query(default="default"),
+    provider_service: ProviderService = Depends(get_provider_service),
+) -> Dict[str, str]:
     selection = provider_service.get_selection(workspace_id)
-    
-    return {
-        "provider": selection.provider,
-        "model": selection.model,
-        "workspace_id": selection.workspace_id
-    }
-
+    return {"provider": selection.provider, "model": selection.model, "workspace_id": selection.workspace_id}

@@ -1,25 +1,21 @@
-"""Custom exceptions and error handling"""
+"""Standardised error handling for the API."""
+
+from __future__ import annotations
+
 from typing import Any, Dict, Optional
+
 from fastapi import Request, status
-from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
-import structlog
 
+from ..core.logging import get_logger
 
-logger = structlog.get_logger(__name__)
+logger = get_logger(__name__)
 
 
 class APIError(Exception):
-    """Base API error with error envelope"""
-
-    def __init__(
-        self,
-        code: str,
-        message: str,
-        status_code: int = 400,
-        details: Optional[Dict[str, Any]] = None
-    ):
+    def __init__(self, code: str, message: str, status_code: int = 400, details: Optional[Dict[str, Any]] = None) -> None:
         self.code = code
         self.message = message
         self.status_code = status_code
@@ -27,14 +23,7 @@ class APIError(Exception):
         super().__init__(message)
 
 
-def create_error_response(
-    code: str,
-    message: str,
-    request_id: str,
-    details: Optional[Dict[str, Any]] = None,
-    status_code: int = 400
-) -> JSONResponse:
-    """Create standardized error response"""
+def create_error_response(code: str, message: str, request_id: str, status_code: int, details: Optional[Dict[str, Any]] = None) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
         content={
@@ -42,87 +31,37 @@ def create_error_response(
                 "code": code,
                 "message": message,
                 "request_id": request_id,
-                "details": details or {}
+                "details": details or {},
             }
-        }
+        },
     )
 
 
 async def api_error_handler(request: Request, exc: APIError) -> JSONResponse:
-    """Handle APIError exceptions"""
-    request_id = request.state.request_id if hasattr(request.state, "request_id") else "unknown"
-
-    logger.error(
-        "api_error",
-        code=exc.code,
-        message=exc.message,
-        request_id=request_id,
-        path=request.url.path
-    )
-
-    return create_error_response(
-        code=exc.code,
-        message=exc.message,
-        request_id=request_id,
-        details=exc.details,
-        status_code=exc.status_code
-    )
+    request_id = getattr(request.state, "request_id", "unknown")
+    logger.error("api_error", code=exc.code, message=exc.message, request_id=request_id)
+    return create_error_response(exc.code, exc.message, request_id, exc.status_code, exc.details)
 
 
 async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-    """Handle Pydantic validation errors"""
-    request_id = request.state.request_id if hasattr(request.state, "request_id") else "unknown"
-
-    logger.warning(
-        "validation_error",
-        errors=exc.errors(),
-        request_id=request_id,
-        path=request.url.path
-    )
-
+    request_id = getattr(request.state, "request_id", "unknown")
+    logger.warning("validation_error", request_id=request_id, errors=exc.errors())
     return create_error_response(
-        code="VALIDATION_ERROR",
-        message="Request validation failed",
-        request_id=request_id,
-        details={"errors": exc.errors()},
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY
+        "VALIDATION_ERROR",
+        "Request validation failed",
+        request_id,
+        status.HTTP_422_UNPROCESSABLE_ENTITY,
+        {"errors": exc.errors()},
     )
 
 
 async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
-    """Handle HTTP exceptions"""
-    request_id = request.state.request_id if hasattr(request.state, "request_id") else "unknown"
-
-    logger.warning(
-        "http_exception",
-        status_code=exc.status_code,
-        detail=exc.detail,
-        request_id=request_id,
-        path=request.url.path
-    )
-
-    return create_error_response(
-        code="HTTP_ERROR",
-        message=str(exc.detail),
-        request_id=request_id,
-        status_code=exc.status_code
-    )
+    request_id = getattr(request.state, "request_id", "unknown")
+    logger.warning("http_exception", request_id=request_id, status=exc.status_code)
+    return create_error_response("HTTP_ERROR", str(exc.detail), request_id, exc.status_code)
 
 
 async def general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Handle unexpected exceptions"""
-    request_id = request.state.request_id if hasattr(request.state, "request_id") else "unknown"
-
-    logger.error(
-        "unhandled_exception",
-        exc_info=exc,
-        request_id=request_id,
-        path=request.url.path
-    )
-
-    return create_error_response(
-        code="INTERNAL_ERROR",
-        message="An internal error occurred",
-        request_id=request_id,
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-    )
+    request_id = getattr(request.state, "request_id", "unknown")
+    logger.error("unhandled_exception", request_id=request_id, exc_info=exc)
+    return create_error_response("INTERNAL", "An internal error occurred", request_id, status.HTTP_500_INTERNAL_SERVER_ERROR)

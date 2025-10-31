@@ -1,3 +1,17 @@
-"""Security utilities (API key auth placeholder)"""
-def verify_api_key(key: str) -> bool:
-    return bool(key) and key != ""
+"""Simple API key verification."""
+
+from __future__ import annotations
+
+from fastapi import Header, HTTPException, status
+
+from .config import get_settings
+
+
+async def enforce_api_key(x_api_key: str = Header(default=None)) -> None:
+    settings = get_settings()
+    expected = settings.api_key
+    if expected and x_api_key != expected:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid API key",
+        )

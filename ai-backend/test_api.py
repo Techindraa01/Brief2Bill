@@ -1,6 +1,11 @@
-"""Quick API test script"""
-import requests
+"""Quick API test script."""
+
 import json
+
+import pytest
+import requests
+
+pytestmark = pytest.mark.skip("Manual integration tests that require a running server")
 
 BASE_URL = "http://127.0.0.1:8000"
 
