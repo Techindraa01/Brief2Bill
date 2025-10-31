@@ -24,14 +24,28 @@ def _ensure_list(value: Any) -> List[Any]:
     return [value]
 
 
+def _coerce_number(value: Any, default: float = 0.0) -> float:
+    """Coerce any value to a float, handling strings and None."""
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return default
+    return default
+
+
 def _coerce_item(raw: Dict[str, Any]) -> Dict[str, Any]:
     data = {
         "description": raw.get("description") or "Line item",
-        "qty": raw.get("qty", 1),
-        "unit_price": raw.get("unit_price", 0),
+        "qty": _coerce_number(raw.get("qty"), 1.0),
+        "unit_price": _coerce_number(raw.get("unit_price"), 0.0),
         "unit": raw.get("unit", "pcs"),
-        "discount": raw.get("discount", 0),
-        "tax_rate": raw.get("tax_rate", 0),
+        "discount": _coerce_number(raw.get("discount"), 0.0),
+        "tax_rate": _coerce_number(raw.get("tax_rate"), 0.0),
         "hsn_sac": raw.get("hsn_sac"),
     }
     return Item.model_validate(data).model_dump()
@@ -55,13 +69,44 @@ def _repair_dates(draft: Dict[str, Any]) -> Dict[str, Any]:
 
 def repair_draft(draft: Dict[str, Any]) -> Dict[str, Any]:
     draft = deepcopy(draft)
-    draft.setdefault("doc_type", "QUOTATION")
+
+    # Fix invalid doc_type values - map PROJECT_BRIEF to QUOTATION
+    doc_type = draft.get("doc_type", "QUOTATION")
+    if doc_type not in ("QUOTATION", "TAX_INVOICE"):
+        # Map invalid doc_types to QUOTATION as default
+        draft["doc_type"] = "QUOTATION"
+    else:
+        draft["doc_type"] = doc_type
+
     draft.setdefault("locale", "en-IN")
     draft.setdefault("currency", "INR")
     draft.setdefault("seller", {"name": draft.get("seller", {}).get("name", "Seller")})
     draft.setdefault("buyer", {"name": draft.get("buyer", {}).get("name", "Buyer")})
-    draft.setdefault("terms", {"title": "Terms & Conditions", "bullets": DEFAULT_TERMS})
-    draft.setdefault("totals", {"subtotal": 0, "discount_total": 0, "tax_total": 0, "grand_total": 0, "round_off": 0})
+
+    # Ensure terms has bullets array
+    terms = draft.get("terms", {})
+    if not isinstance(terms, dict):
+        terms = {}
+    terms.setdefault("title", "Terms & Conditions")
+    terms.setdefault("bullets", DEFAULT_TERMS)
+    # Ensure bullets is a list
+    if not isinstance(terms.get("bullets"), list):
+        terms["bullets"] = DEFAULT_TERMS
+    draft["terms"] = terms
+
+    # Ensure totals exists with all required fields and coerce to numbers
+    totals = draft.get("totals", {})
+    if not isinstance(totals, dict):
+        totals = {}
+    # Coerce all total fields to numbers
+    totals["subtotal"] = _coerce_number(totals.get("subtotal"), 0.0)
+    totals["discount_total"] = _coerce_number(totals.get("discount_total"), 0.0)
+    totals["tax_total"] = _coerce_number(totals.get("tax_total"), 0.0)
+    totals["grand_total"] = _coerce_number(totals.get("grand_total"), 0.0)
+    totals["round_off"] = _coerce_number(totals.get("round_off"), 0.0)
+    if "shipping" in totals:
+        totals["shipping"] = _coerce_number(totals.get("shipping"), 0.0)
+    draft["totals"] = totals
 
     _repair_dates(draft)
 
@@ -74,7 +119,9 @@ def repair_draft(draft: Dict[str, Any]) -> Dict[str, Any]:
     ]
     draft["items"] = [_coerce_item(item) for item in raw_items]
 
+    # Now validate after all repairs
     validated = DocDraft.model_validate(draft)
+    # Recompute totals to ensure accuracy
     totals = compute_totals(validated)
     validated.totals = totals
     return validated.model_dump()
