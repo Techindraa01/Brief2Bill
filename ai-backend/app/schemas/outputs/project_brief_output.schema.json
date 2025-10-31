@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProjectBriefOutput",
+  "type": "object",
+  "required": ["title","objective","scope","deliverables","milestones","timeline_days","billing_plan"],
+  "properties": {
+    "title": { "type": "string" },
+    "objective": { "type": "string" },
+    "scope": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "deliverables": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "milestones": { "type": "array", "items": { "$ref": "#/$defs/Milestone" }, "minItems": 1 },
+    "timeline_days": { "type": "integer", "minimum": 1 },
+    "billing_plan": { "type": "array", "items": { "$ref": "#/$defs/BillingPart" }, "minItems": 1 },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "seller": { "$ref": "#/$defs/Party", "description": "Optional display on brief" },
+    "buyer": { "$ref": "#/$defs/Party", "description": "Optional display on brief" }
+  },
+  "$defs": {
+    "Party": { "$ref": "quotation_output.schema.json#/$defs/Party" },
+    "Milestone": {
+      "type": "object",
+      "required": ["name","start","end"],
+      "properties": {
+        "name": { "type": "string" },
+        "start": { "type": "string", "format": "date" },
+        "end": { "type": "string", "format": "date" },
+        "fee": { "type": "number", "default": 0 }
+      }
+    },
+    "BillingPart": {
+      "type": "object",
+      "required": ["when","percent"],
+      "properties": {
+        "when": { "type": "string" },
+        "percent": { "type": "integer", "minimum": 0, "maximum": 100 }
+      }
+    }
+  }
+}

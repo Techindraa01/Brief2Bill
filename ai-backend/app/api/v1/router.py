@@ -12,6 +12,11 @@ from .repair import router as repair_router
 from .totals import router as totals_router
 from .upi import router as upi_router
 from .version import router as version_router
+from . import (
+    generate_invoice,
+    generate_project_brief,
+    generate_quotation,
+)
 
 
 def create_v1_router() -> APIRouter:
@@ -27,5 +32,8 @@ def create_v1_router() -> APIRouter:
     router.include_router(repair_router, tags=["validation"])
     router.include_router(totals_router, tags=["totals"])
     router.include_router(upi_router, tags=["upi"])
+    router.include_router(generate_quotation.router, tags=["generate"])
+    router.include_router(generate_invoice.router, tags=["generate"])
+    router.include_router(generate_project_brief.router, tags=["generate"])
 
     return router

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TaxInvoiceOutput",
+  "type": "object",
+  "required": ["doc_type","seller","buyer","currency","locale","doc_meta","dates","items","totals","terms"],
+  "properties": {
+    "doc_type": { "type": "string", "const": "TAX_INVOICE" },
+    "currency": { "type": "string", "default": "INR" },
+    "locale": { "type": "string", "default": "en-IN" },
+    "seller": { "$ref": "#/$defs/Party" },
+    "buyer": { "$ref": "#/$defs/Party" },
+    "doc_meta": { "$ref": "#/$defs/DocMeta" },
+    "dates": { "$ref": "#/$defs/DatesInvoice" },
+    "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Item" } },
+    "totals": { "$ref": "#/$defs/Totals" },
+    "terms": { "$ref": "#/$defs/Terms" },
+    "payment": { "$ref": "#/$defs/Payment" },
+    "gst": { "$ref": "#/$defs/GSTBreakup" }
+  },
+  "$defs": {
+    "Party": { "$ref": "quotation_output.schema.json#/$defs/Party" },
+    "DocMeta": {
+      "type": "object",
+      "required": ["doc_no"],
+      "properties": {
+        "doc_no": { "type": "string" },
+        "po_no": { "type": "string" },
+        "ref_no": { "type": "string" }
+      }
+    },
+    "DatesInvoice": {
+      "type": "object",
+      "required": ["issue_date"],
+      "properties": {
+        "issue_date": { "type": "string", "format": "date" },
+        "due_date": { "type": "string", "format": "date" }
+      }
+    },
+    "Item": { "$ref": "quotation_output.schema.json#/$defs/Item" },
+    "Totals": { "$ref": "quotation_output.schema.json#/$defs/Totals" },
+    "Terms": { "$ref": "quotation_output.schema.json#/$defs/Terms" },
+    "Payment": { "$ref": "quotation_output.schema.json#/$defs/Payment" },
+    "GSTBreakup": {
+      "type": "object",
+      "properties": {
+        "mode": { "type": "string", "enum": ["INTRA","INTER"] },
+        "cgst": { "type": "number", "default": 0 },
+        "sgst": { "type": "number", "default": 0 },
+        "igst": { "type": "number", "default": 0 },
+        "place_of_supply": { "type": "string" }
+      }
+    }
+  }
+}
