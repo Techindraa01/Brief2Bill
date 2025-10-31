@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DocumentBundle",
+  "type": "object",
+  "properties": {
+    "drafts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {"type": "string"},
+          "content": {"type": "string"}
+        },
+        "required": ["title", "content"]
+      }
+    }
+  },
+  "required": ["drafts"]
+}
