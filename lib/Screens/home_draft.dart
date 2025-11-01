@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:intl/intl.dart';
-import 'package:invoicepdf/Screens/settings_scr.dart';
+import 'package:invoicepdf/Screens/seller_settings_scr.dart';
 
 import 'client_scr.dart';
 import 'editor_screen.dart';
@@ -213,16 +213,37 @@ class _HomeDraftState extends State<HomeDraft> {
     return Tooltip(
       message: caption,
       child: ChoiceChip(
+        checkmarkColor: Colors.white,
+        selectedColor: Colors.blue.shade800,
+        disabledColor: Colors.white,
+        side: BorderSide.none,
         selected: selected,
         onSelected: (_) => setState(() => _selectedDoc = label),
         label: SizedBox(
-          width: 160,
+          width: MediaQuery.sizeOf(context).width * 1,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: Theme.of(context).textTheme.bodyLarge),
-              Text(caption, style: Theme.of(context).textTheme.bodySmall)
+              // Text(label, style: Theme.of(context).textTheme.bodyLarge),
+              // Text(caption, style: Theme.of(context).textTheme.bodySmall)
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  fontFamily: 'Roboto', // replace with your font
+                  color: selected ? Colors.white : Colors.black,
+                ),
+              ),
+              Text(
+                caption,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontFamily: 'Roboto',
+                  color: selected ? Colors.white : Colors.grey.shade500,
+                ),
+              ),
             ],
           ),
         ),
@@ -230,97 +251,277 @@ class _HomeDraftState extends State<HomeDraft> {
     );
   }
 
+
+  Widget businessInfo(IconData icon, String title, String subtitle, Color avtarcolor, Color bgcolor){
+    return Container(
+        decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10)
+    ),
+    child: Padding(
+    padding: const EdgeInsets.all(8.0),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          CircleAvatar(
+            backgroundColor: bgcolor, //Colors.blue.shade100,
+            child: Icon(icon, size: 20, color: avtarcolor),//Colors.blue.shade600,),
+          ),
+          SizedBox(width: MediaQuery.widthOf(context) * 0.02,),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Text(label, style: Theme.of(context).textTheme.bodyLarge),
+                  // Text(caption, style: Theme.of(context).textTheme.bodySmall)
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Roboto', // replace with your font
+                      color: Colors.black,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontFamily: 'Roboto',
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+        ],
+      ),
+      Icon(Icons.arrow_forward_ios, size: 15, color: Colors.blue.shade600,)
+    ],
+    )));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Home - Draft')),
-      body: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(children: [
-          Expanded(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(title: const Text('Create Invoice', style: TextStyle(color: Colors.white, fontFamily: 'Roboto', fontSize: 16, fontWeight: FontWeight.w600)
+      ),
+        flexibleSpace: Container(
+          decoration:  BoxDecoration(
+            gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: <Color>[Colors.blue.shade800, Colors.blue.shade900]),
+          ),
+        ),
+        centerTitle: true,
+        iconTheme: IconThemeData(color: Colors.white),
+        leading: IconButton(onPressed: (){}, icon: Icon(Icons.settings,)),
+      ),
+     //drawer: Drawer(),
+      body: Column(children: [
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _desc,
-                    maxLines: 5,
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Work requirement',
-                      hintText:
-                          'Describe the work requirement. Include deliverables, timelines, budget hints, and any must-have features. Example: Redesign e-commerce landing, 2-week timeline, budget 40–45k, include 3-month maintenance option, UPI payment preferred.'
+
+                  SizedBox(height: MediaQuery.heightOf(context) * 0.01),
+                  Text("INVOICE TYPE", style: TextStyle(color: Colors.grey.shade600, fontFamily: 'Roboto', fontSize: 12, fontWeight: FontWeight.w600)),
+                  SizedBox(height: MediaQuery.heightOf(context) * 0.01),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10)
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _docChip('Quotation', 'Price + terms. Includes validity date.'),
+                          _docChip('Tax Invoice', 'Final bill with GST breakup and due date.'),
+                          _docChip('Project Brief', 'Scope, milestones, billing plan.'),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _docChip('Quotation', 'Price + terms. Includes validity date.'),
-                      _docChip('Tax Invoice', 'Final bill with GST breakup and due date.'),
-                      _docChip('Project Brief', 'Scope, milestones, billing plan.'),
-                    ],
+                  SizedBox(height: MediaQuery.heightOf(context) * 0.03),
+                  Text("BUSINESS INFO", style: TextStyle(color: Colors.grey.shade600, fontFamily: 'Roboto', fontSize: 12, fontWeight: FontWeight.w600)),
+                  SizedBox(height: MediaQuery.heightOf(context) * 0.01),
+                  Container(
+                    decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10)
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        children: [
+                          GestureDetector(
+                              onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SellerSettings()),
+                    ),
+                              child: businessInfo(Icons.perm_identity, "From", "Add Business Information", Colors.blue.shade600, Colors.blue.shade100)),
+                          Divider(color: Colors.grey.shade300,thickness: 1,),
+                          GestureDetector(
+                              onTap: ()=> Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const ClientsScreen()),
+                              ),
+                              child: businessInfo(Icons.perm_contact_cal_outlined, "To", "Add Client Information", Colors.red.shade600, Colors.red.shade100)),
+                          Divider(color: Colors.grey.shade300,thickness: 1,),
+                           Padding(
+                             padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8, top: 8),
+                             child: Row(
+                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                               children: [
+                                 CircleAvatar(
+                                   backgroundColor: Colors.green.shade100,
+                                   child: Icon(Icons.account_balance_wallet_outlined, size: 20, color: Colors.green.shade600,),
+                                 ),
+                                 SizedBox(width: MediaQuery.widthOf(context) * 0.025,),
+                                 Flexible(
+                                   child: DropdownButtonFormField<String>(
+                                     value: _currency,
+                                     items: _currencies
+                                         .map((c) => DropdownMenuItem(value: c, child: Text(c, style: TextStyle(color: Colors.black, fontFamily: 'Roboto', fontSize: 14),)))
+                                         .toList(),
+                                     onChanged: (v) => setState(() => _currency = v ?? 'INR'),
+                                     decoration:  InputDecoration(labelText: 'Choose Currency',
+                                         labelStyle: TextStyle(color: Colors.grey[600], fontFamily: 'Roboto', fontSize: 16),
+                                       border: OutlineInputBorder(
+                                         borderSide: BorderSide(color: Colors.grey.shade600, width: 0.5),
+                                         borderRadius: BorderRadius.circular(10),
+                                       ),
+                                       enabledBorder: OutlineInputBorder(
+                                         borderSide: BorderSide(color: Colors.grey.shade400, width: 0.8),
+                                         borderRadius: BorderRadius.circular(10),
+                                       ),
+                                       focusedBorder: OutlineInputBorder(
+                                         borderSide:  BorderSide(color: Colors.grey.shade400, width: 1.2),
+                                         borderRadius: BorderRadius.circular(10),
+                                       ), ),
+                                   ),
+                                 ),
+                               ],
+                             ),
+                           ),
+
+                        ],
+                      )
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Flexible(
-                        child: DropdownButtonFormField<String>(
-                          value: _currency,
-                          items: _currencies
-                              .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                              .toList(),
-                          onChanged: (v) => setState(() => _currency = v ?? 'INR'),
-                          decoration: const InputDecoration(labelText: 'Currency'),
-                        ),
+                  SizedBox(height: MediaQuery.heightOf(context) * 0.03),
+                  Text("WORK REQUIREMENT", style: TextStyle(color: Colors.grey.shade600, fontFamily: 'Roboto', fontSize: 12, fontWeight: FontWeight.w600)),
+                  SizedBox(height: MediaQuery.heightOf(context) * 0.01),
+            Container(
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10)
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child:
+                TextField(
+                  controller: _desc,
+                  maxLines: 5,
+                  onChanged: (_) => setState(() {}),
+                  decoration:  InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.grey.shade400, width: 0.5),
                       ),
-                      const SizedBox(width: 16),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const SellerSettings()),
-                        ),
-                        child: const Text('Set Seller Details'),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.grey.shade400, width: 0.5),
                       ),
-                      const SizedBox(width: 8),
-                      TextButton(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const ClientsScreen()),
-                        ),
-                        child: const Text('Saved Clients'),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:  BorderSide(color: Colors.grey.shade400, width: 0.5),
                       ),
-                    ],
+                      hintStyle: TextStyle(color: Colors.grey.shade600, fontFamily: 'Roboto', fontSize: 12, ),
+                      hintText:
+                      'Describe the work requirement. Include deliverables, timelines, budget hints, and any must-have features. Example: Redesign e-commerce landing, 2-week timeline, budget 40–45k, include 3-month maintenance option, UPI payment preferred.'
                   ),
+                ),
+              )),
                 ],
               ),
             ),
           ),
-          SizedBox(
-            height: 56,
+        ),
+        Container(
+          color: Colors.white,
+          width: double.infinity,
+          height: MediaQuery.heightOf(context)* 0.08,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 10, right: 10),
             child: Row(
               children: [
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: _canGenerate ? _generateDraft : null,
-                    child: _loading
-                        ? const CircularProgressIndicator.adaptive()
-                        : const Text('Generate Draft'),
+                  child: SizedBox(
+                    height: MediaQuery.heightOf(context)* 0.06,
+                    child: ElevatedButton(
+                      onPressed: _canGenerate ? _generateDraft : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade800,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)
+                        )
+                      ),
+                      child: _loading
+                          ? const CircularProgressIndicator.adaptive()
+                          : Row(
+                        spacing: 5,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.drafts, color: Colors.white,),
+                          Text('Generate Draft',style: TextStyle(color: Colors.white, fontFamily: 'Roboto', fontSize: 12,fontWeight: FontWeight.w600,),),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                OutlinedButton(
-                  child: const Text('History'),
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const HistoryScreen()),
-                  ),
-                )
+                GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const HistoryScreen()),
+              ),
+                  child: Container(
+                    width: MediaQuery.widthOf(context) * 0.4,
+                    height: MediaQuery.heightOf(context)* 0.06,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(10)),
+                      child : Row(
+                        spacing: 5,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.history_outlined, color: Colors.blue.shade800,),
+                          Text('History',style: TextStyle(color: Colors.blue.shade800, fontFamily: 'Roboto', fontSize: 12,fontWeight: FontWeight.w600,),),
+                             ],
+                      )
+                    ),
+                ),
+
               ],
             ),
-          )
-        ]),
-      ),
+          ),
+        )
+      ]),
     );
   }
 }
