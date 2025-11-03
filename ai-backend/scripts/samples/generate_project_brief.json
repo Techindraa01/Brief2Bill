@@ -1,0 +1,114 @@
+{
+  "to": {
+    "name": "Indigo Retail Pvt Ltd",
+    "contact_person": "Anita Kapoor",
+    "email": "ops@indigoretail.in",
+    "phone": "+91-9810000000",
+    "website": "https://indigoretail.in",
+    "gstin": "27PQRSX1234A1Z2",
+    "pan": "PQRSX1234A",
+    "notes": "Need phased rollout across regions",
+    "billing_address": {
+      "line1": "5th Floor, Horizon Plaza",
+      "line2": "Nariman Point",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "state_code": "27",
+      "postal_code": "400021",
+      "country": "India",
+      "country_code": "IN"
+    },
+    "shipping_address": {
+      "line1": "Plot 4, Indigo Logistics Park",
+      "line2": "Bhiwandi",
+      "city": "Thane",
+      "state": "Maharashtra",
+      "state_code": "27",
+      "postal_code": "421302",
+      "country": "India",
+      "country_code": "IN"
+    },
+    "place_of_supply": "Maharashtra"
+  },
+  "from": {
+    "name": "Acme Solutions Pvt Ltd",
+    "contact_person": "Rahul Sharma",
+    "email": "projects@acmesolutions.in",
+    "phone": "+91-9800000000",
+    "website": "https://acmesolutions.in",
+    "gstin": "24ABCDE1234F1Z5",
+    "pan": "ABCDE1234F",
+    "notes": "",
+    "cin": "U72900GJ2010PTC000123",
+    "billing_address": {
+      "line1": "401, Skyline Tech Park",
+      "line2": "City Light Road",
+      "city": "Surat",
+      "state": "Gujarat",
+      "state_code": "24",
+      "postal_code": "395007",
+      "country": "India",
+      "country_code": "IN"
+    },
+    "bank": {
+      "bank_name": "HDFC Bank",
+      "branch": "Athwalines",
+      "account_name": "Acme Solutions Pvt Ltd",
+      "account_no": "1234567890123",
+      "ifsc": "HDFC0001234",
+      "swift": "HDFCINBB",
+      "iban": "",
+      "upi_id": "acmesolutions@upi"
+    },
+    "tax_prefs": {
+      "place_of_supply": "Gujarat",
+      "reverse_charge": false,
+      "e_invoice": false
+    },
+    "branding": {
+      "logo_url": "https://acmesolutions.in/assets/logo.png",
+      "accent_color": "#0057FF",
+      "footer_text": "Project delivered by Acme Solutions"
+    }
+  },
+  "currency": "INR",
+  "locale": "en-IN",
+  "requirement": "Comprehensive project brief for Indigo Retail's e-commerce revamp including phased rollout and success metrics.",
+  "hints": {
+    "doc_meta": {
+      "doc_no": "",
+      "po_no": "",
+      "ref_no": ""
+    },
+    "dates": {
+      "issue_date": "2025-11-03",
+      "due_date": "2025-11-10",
+      "valid_till": "2025-11-30"
+    },
+    "items": [
+      {
+        "description": "Discovery workshops",
+        "hsn_sac": "",
+        "qty": 1,
+        "unit": "lot",
+        "unit_price": 0,
+        "discount": 0,
+        "tax_rate": 0
+      }
+    ],
+    "terms": {
+      "title": "Engagement Notes",
+      "bullets": [
+        "Two stakeholder workshops",
+        "Weekly progress reviews",
+        "Final acceptance on UAT sign-off"
+      ]
+    },
+    "payment": {
+      "mode": "MILESTONE",
+      "instructions": "Billing aligned to milestone completion",
+      "upi_deeplink": ""
+    }
+  },
+  "workspace_id": "default"
+}

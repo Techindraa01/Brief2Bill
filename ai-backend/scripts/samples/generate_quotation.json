@@ -1,0 +1,123 @@
+{
+  "to": {
+    "name": "Indigo Retail Pvt Ltd",
+    "contact_person": "Anita Kapoor",
+    "email": "procurement@indigoretail.in",
+    "phone": "+91-9810000000",
+    "website": "https://indigoretail.in",
+    "gstin": "27PQRSX1234A1Z2",
+    "pan": "PQRSX1234A",
+    "notes": "Prefer 30 day validity on offers",
+    "billing_address": {
+      "line1": "5th Floor, Horizon Plaza",
+      "line2": "Nariman Point",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "state_code": "27",
+      "postal_code": "400021",
+      "country": "India",
+      "country_code": "IN"
+    },
+    "shipping_address": {
+      "line1": "Plot 4, Indigo Logistics Park",
+      "line2": "Bhiwandi",
+      "city": "Thane",
+      "state": "Maharashtra",
+      "state_code": "27",
+      "postal_code": "421302",
+      "country": "India",
+      "country_code": "IN"
+    },
+    "place_of_supply": "Maharashtra"
+  },
+  "from": {
+    "name": "Acme Solutions Pvt Ltd",
+    "contact_person": "Rahul Sharma",
+    "email": "sales@acmesolutions.in",
+    "phone": "+91-9800000000",
+    "website": "https://acmesolutions.in",
+    "gstin": "24ABCDE1234F1Z5",
+    "pan": "ABCDE1234F",
+    "notes": "Preferred payments via UPI",
+    "cin": "U72900GJ2010PTC000123",
+    "billing_address": {
+      "line1": "401, Skyline Tech Park",
+      "line2": "City Light Road",
+      "city": "Surat",
+      "state": "Gujarat",
+      "state_code": "24",
+      "postal_code": "395007",
+      "country": "India",
+      "country_code": "IN"
+    },
+    "bank": {
+      "bank_name": "HDFC Bank",
+      "branch": "Athwalines",
+      "account_name": "Acme Solutions Pvt Ltd",
+      "account_no": "1234567890123",
+      "ifsc": "HDFC0001234",
+      "swift": "HDFCINBB",
+      "iban": "",
+      "upi_id": "acmesolutions@upi"
+    },
+    "tax_prefs": {
+      "place_of_supply": "Gujarat",
+      "reverse_charge": false,
+      "e_invoice": false
+    },
+    "branding": {
+      "logo_url": "https://acmesolutions.in/assets/logo.png",
+      "accent_color": "#0057FF",
+      "footer_text": "Thank you for considering Acme Solutions"
+    }
+  },
+  "currency": "INR",
+  "locale": "en-IN",
+  "requirement": "Quotation for redesigning Indigo Retail's e-commerce storefront with optional maintenance retainer.",
+  "hints": {
+    "doc_meta": {
+      "doc_no": "QTN-2025-0008",
+      "po_no": "",
+      "ref_no": "INDIGO-RFP-24-11"
+    },
+    "dates": {
+      "issue_date": "2025-11-03",
+      "due_date": "2025-11-10",
+      "valid_till": "2025-11-24"
+    },
+    "items": [
+      {
+        "description": "Website redesign (desktop + mobile)",
+        "hsn_sac": "998313",
+        "qty": 1,
+        "unit": "job",
+        "unit_price": 32000,
+        "discount": 0,
+        "tax_rate": 18
+      },
+      {
+        "description": "Optional maintenance retainer (3 months)",
+        "hsn_sac": "998316",
+        "qty": 1,
+        "unit": "lot",
+        "unit_price": 9000,
+        "discount": 0,
+        "tax_rate": 18
+      }
+    ],
+    "terms": {
+      "title": "Terms & Conditions",
+      "bullets": [
+        "Quotation valid for 21 days",
+        "50% advance, balance on delivery",
+        "Includes two rounds of design revisions"
+      ]
+    },
+    "payment": {
+      "mode": "UPI",
+      "instructions": "Pay 50% advance to initiate the project",
+      "upi_deeplink": ""
+    }
+  },
+  "workspace_id": "default"
+}

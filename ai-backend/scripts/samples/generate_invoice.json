@@ -1,0 +1,124 @@
+{
+  "to": {
+    "name": "Indigo Retail Pvt Ltd",
+    "contact_person": "Anita Kapoor",
+    "email": "accounts@indigoretail.in",
+    "phone": "+91-9810000000",
+    "website": "https://indigoretail.in",
+    "gstin": "27PQRSX1234A1Z2",
+    "pan": "PQRSX1234A",
+    "notes": "Bill-to same as ship-to",
+    "billing_address": {
+      "line1": "5th Floor, Horizon Plaza",
+      "line2": "Nariman Point",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "state_code": "27",
+      "postal_code": "400021",
+      "country": "India",
+      "country_code": "IN"
+    },
+    "shipping_address": {
+      "line1": "Plot 4, Indigo Logistics Park",
+      "line2": "Bhiwandi",
+      "city": "Thane",
+      "state": "Maharashtra",
+      "state_code": "27",
+      "postal_code": "421302",
+      "country": "India",
+      "country_code": "IN"
+    },
+    "place_of_supply": "Maharashtra"
+  },
+  "from": {
+    "name": "Acme Solutions Pvt Ltd",
+    "contact_person": "Rahul Sharma",
+    "email": "billing@acmesolutions.in",
+    "phone": "+91-9800000000",
+    "website": "https://acmesolutions.in",
+    "gstin": "24ABCDE1234F1Z5",
+    "pan": "ABCDE1234F",
+    "notes": "",
+    "cin": "U72900GJ2010PTC000123",
+    "billing_address": {
+      "line1": "401, Skyline Tech Park",
+      "line2": "City Light Road",
+      "city": "Surat",
+      "state": "Gujarat",
+      "state_code": "24",
+      "postal_code": "395007",
+      "country": "India",
+      "country_code": "IN"
+    },
+    "bank": {
+      "bank_name": "HDFC Bank",
+      "branch": "Athwalines",
+      "account_name": "Acme Solutions Pvt Ltd",
+      "account_no": "1234567890123",
+      "ifsc": "HDFC0001234",
+      "swift": "HDFCINBB",
+      "iban": "",
+      "upi_id": "acmesolutions@upi"
+    },
+    "tax_prefs": {
+      "place_of_supply": "Gujarat",
+      "reverse_charge": false,
+      "e_invoice": true
+    },
+    "branding": {
+      "logo_url": "https://acmesolutions.in/assets/logo.png",
+      "accent_color": "#0057FF",
+      "footer_text": "For queries contact billing@acmesolutions.in"
+    }
+  },
+  "currency": "INR",
+  "locale": "en-IN",
+  "requirement": "Invoice for website redesign project milestone completion.",
+  "hints": {
+    "doc_meta": {
+      "doc_no": "INV-2025-0452",
+      "po_no": "INDIGO-PO-1122",
+      "ref_no": "",
+      "additional_prop": ""
+    },
+    "dates": {
+      "issue_date": "2025-11-03",
+      "due_date": "2025-11-18",
+      "valid_till": "2025-11-18"
+    },
+    "items": [
+      {
+        "description": "Website redesign final milestone",
+        "hsn_sac": "998313",
+        "qty": 1,
+        "unit": "job",
+        "unit_price": 28000,
+        "discount": 0,
+        "tax_rate": 18
+      },
+      {
+        "description": "Maintenance retainer (quarterly)",
+        "hsn_sac": "998316",
+        "qty": 1,
+        "unit": "lot",
+        "unit_price": 9000,
+        "discount": 0,
+        "tax_rate": 18
+      }
+    ],
+    "terms": {
+      "title": "Payment Terms",
+      "bullets": [
+        "Payment due within 15 days",
+        "Late fee of 1.5% per month after due date",
+        "UPI or bank transfer preferred"
+      ]
+    },
+    "payment": {
+      "mode": "BANK_TRANSFER",
+      "instructions": "Transfer to HDFC Athwalines branch, IFSC HDFC0001234",
+      "upi_deeplink": "upi://pay?pa=acmesolutions@upi&pn=Acme%20Solutions&cu=INR"
+    }
+  },
+  "workspace_id": "default"
+}
