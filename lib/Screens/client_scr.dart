@@ -496,171 +496,169 @@ class _ClientsScreenState extends State<ClientsScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                          CustTextFields(
-                            title: 'COMPANY NAME',
-                            textEditingController: _name,
-                          ),
-                          CustTextFields(
-                            title: 'CONTACT PERSON',
-                            textEditingController: _contactPerson,
-                          ),
-                          CustTextFields(
-                            title: 'E-MAIL',
-                            textEditingController: _email,
-                            keyboardType: TextInputType.emailAddress,
-                            textCapitalization: TextCapitalization.none,
-                          ),
-                          CustTextFields(
-                            title: 'PHONE',
-                            textEditingController: _phone,
-                            keyboardType: TextInputType.phone,
-                            textCapitalization: TextCapitalization.none,
-                          ),
-                          CustTextFields(
-                            title: 'WEBSITE',
-                            textEditingController: _website,
-                            textCapitalization: TextCapitalization.none,
-                          ),
-                          CustTextFields(
-                            title: 'GSTIN',
-                            textEditingController: _gstin,
-                            textCapitalization: TextCapitalization.characters,
-                          ),
-                          CustTextFields(
-                            title: 'PAN',
-                            textEditingController: _pan,
-                            textCapitalization: TextCapitalization.characters,
-                          ),
-                          CustTextFields(
-                            title: 'NOTES',
-                            textEditingController: _notes,
-                            maxLines: 3,
-                          ),
-                          const SizedBox(height: 12),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Billing address',
-                              style: TextStyle(
-                                color: Colors.grey.shade700,
-                                fontFamily: 'Roboto',
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          CustTextFields(
-                            title: 'ADDRESS LINE 1',
-                            textEditingController: _billingAddress.line1,
-                          ),
-                          CustTextFields(
-                            title: 'ADDRESS LINE 2',
-                            textEditingController: _billingAddress.line2,
-                          ),
-                          CustTextFields(
-                            title: 'CITY',
-                            textEditingController: _billingAddress.city,
-                          ),
-                          CustTextFields(
-                            title: 'STATE',
-                            textEditingController: _billingAddress.state,
-                          ),
-                          CustTextFields(
-                            title: 'STATE CODE',
-                            textEditingController: _billingAddress.stateCode,
-                            textCapitalization: TextCapitalization.characters,
-                          ),
-                          CustTextFields(
-                            title: 'POSTAL CODE',
-                            textEditingController: _billingAddress.postalCode,
-                            keyboardType: TextInputType.number,
-                          ),
-                          CustTextFields(
-                            title: 'COUNTRY',
-                            textEditingController: _billingAddress.country,
-                          ),
-                          CustTextFields(
-                            title: 'COUNTRY CODE',
-                            textEditingController: _billingAddress.countryCode,
-                            textCapitalization: TextCapitalization.characters,
-                          ),
-                          const SizedBox(height: 12),
-                          SwitchListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Shipping address same as billing?'),
-                            value: _shipSameAsBilling,
-                            onChanged: (value) {
-                              setState(() {
-                                _shipSameAsBilling = value;
-                                if (value) {
-                                  _shippingAddress.populate(null);
-                                }
-                              });
-                            },
-                          ),
-                          if (!_shipSameAsBilling) ...[
-                            CustTextFields(
-                              title: 'SHIP ADDRESS LINE 1',
-                              textEditingController: _shippingAddress.line1,
-                            ),
-                            CustTextFields(
-                              title: 'SHIP ADDRESS LINE 2',
-                              textEditingController: _shippingAddress.line2,
-                            ),
-                            CustTextFields(
-                              title: 'SHIP CITY',
-                              textEditingController: _shippingAddress.city,
-                            ),
-                            CustTextFields(
-                              title: 'SHIP STATE',
-                              textEditingController: _shippingAddress.state,
-                            ),
-                            CustTextFields(
-                              title: 'SHIP STATE CODE',
-                              textEditingController: _shippingAddress.stateCode,
-                              textCapitalization: TextCapitalization.characters,
-                            ),
-                            CustTextFields(
-                              title: 'SHIP POSTAL CODE',
-                              textEditingController: _shippingAddress.postalCode,
-                              keyboardType: TextInputType.number,
-                            ),
-                            CustTextFields(
-                              title: 'SHIP COUNTRY',
-                              textEditingController: _shippingAddress.country,
-                            ),
-                            CustTextFields(
-                              title: 'SHIP COUNTRY CODE',
-                              textEditingController: _shippingAddress.countryCode,
-                              textCapitalization: TextCapitalization.characters,
-                            ),
-                          ],
-                          CustTextFields(
-                            title: 'PLACE OF SUPPLY',
-                            textEditingController: _placeOfSupply,
-                          ),
-                        ],
+                      CustTextFields(
+                        title: 'COMPANY NAME',
+                        textEditingController: _name,
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: CustButtons(
-                          text: _editingIndex != null ? 'Update client' : 'Save client',
-                          onpressed: _saveClient,
-                          boxcolor: Colors.blue.shade600,
+                      CustTextFields(
+                        title: 'CONTACT PERSON',
+                        textEditingController: _contactPerson,
+                      ),
+                      CustTextFields(
+                        title: 'E-MAIL',
+                        textEditingController: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        textCapitalization: TextCapitalization.none,
+                      ),
+                      CustTextFields(
+                        title: 'PHONE',
+                        textEditingController: _phone,
+                        keyboardType: TextInputType.phone,
+                        textCapitalization: TextCapitalization.none,
+                      ),
+                      CustTextFields(
+                        title: 'WEBSITE',
+                        textEditingController: _website,
+                        textCapitalization: TextCapitalization.none,
+                      ),
+                      CustTextFields(
+                        title: 'GSTIN',
+                        textEditingController: _gstin,
+                        textCapitalization: TextCapitalization.characters,
+                      ),
+                      CustTextFields(
+                        title: 'PAN',
+                        textEditingController: _pan,
+                        textCapitalization: TextCapitalization.characters,
+                      ),
+                      CustTextFields(
+                        title: 'NOTES',
+                        textEditingController: _notes,
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Billing address',
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontFamily: 'Roboto',
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: CustButtons(
-                          text: 'Clear form',
-                          onpressed: _clearForm,
-                          boxcolor: Colors.grey.shade400,
+                      CustTextFields(
+                        title: 'ADDRESS LINE 1',
+                        textEditingController: _billingAddress.line1,
+                      ),
+                      CustTextFields(
+                        title: 'ADDRESS LINE 2',
+                        textEditingController: _billingAddress.line2,
+                      ),
+                      CustTextFields(
+                        title: 'CITY',
+                        textEditingController: _billingAddress.city,
+                      ),
+                      CustTextFields(
+                        title: 'STATE',
+                        textEditingController: _billingAddress.state,
+                      ),
+                      CustTextFields(
+                        title: 'STATE CODE',
+                        textEditingController: _billingAddress.stateCode,
+                        textCapitalization: TextCapitalization.characters,
+                      ),
+                      CustTextFields(
+                        title: 'POSTAL CODE',
+                        textEditingController: _billingAddress.postalCode,
+                        keyboardType: TextInputType.number,
+                      ),
+                      CustTextFields(
+                        title: 'COUNTRY',
+                        textEditingController: _billingAddress.country,
+                      ),
+                      CustTextFields(
+                        title: 'COUNTRY CODE',
+                        textEditingController: _billingAddress.countryCode,
+                        textCapitalization: TextCapitalization.characters,
+                      ),
+                      const SizedBox(height: 12),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Shipping address same as billing?'),
+                        value: _shipSameAsBilling,
+                        onChanged: (value) {
+                          setState(() {
+                            _shipSameAsBilling = value;
+                            if (value) {
+                              _shippingAddress.populate(null);
+                            }
+                          });
+                        },
+                      ),
+                      if (!_shipSameAsBilling) ...[
+                        CustTextFields(
+                          title: 'SHIP ADDRESS LINE 1',
+                          textEditingController: _shippingAddress.line1,
                         ),
+                        CustTextFields(
+                          title: 'SHIP ADDRESS LINE 2',
+                          textEditingController: _shippingAddress.line2,
+                        ),
+                        CustTextFields(
+                          title: 'SHIP CITY',
+                          textEditingController: _shippingAddress.city,
+                        ),
+                        CustTextFields(
+                          title: 'SHIP STATE',
+                          textEditingController: _shippingAddress.state,
+                        ),
+                        CustTextFields(
+                          title: 'SHIP STATE CODE',
+                          textEditingController: _shippingAddress.stateCode,
+                          textCapitalization: TextCapitalization.characters,
+                        ),
+                        CustTextFields(
+                          title: 'SHIP POSTAL CODE',
+                          textEditingController: _shippingAddress.postalCode,
+                          keyboardType: TextInputType.number,
+                        ),
+                        CustTextFields(
+                          title: 'SHIP COUNTRY',
+                          textEditingController: _shippingAddress.country,
+                        ),
+                        CustTextFields(
+                          title: 'SHIP COUNTRY CODE',
+                          textEditingController: _shippingAddress.countryCode,
+                          textCapitalization: TextCapitalization.characters,
+                        ),
+                      ],
+                      CustTextFields(
+                        title: 'PLACE OF SUPPLY',
+                        textEditingController: _placeOfSupply,
                       ),
                     ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: CustButtons(
+                      text: _editingIndex != null ? 'Update client' : 'Save client',
+                      onpressed: _saveClient,
+                      boxcolor: Colors.blue.shade600,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: CustButtons(
+                      text: 'Clear form',
+                      onpressed: _clearForm,
+                      boxcolor: Colors.grey.shade400,
+                    ),
                   ),
                 ],
               ),
