@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 
@@ -78,8 +79,9 @@ class _HomeDraftState extends State<HomeDraft> {
     super.dispose();
   }
 
-  Map<String, dynamic> _readSeller() {
-    final seller = _settingsBox.get('seller', defaultValue: <String, dynamic>{});
+  Map<String, dynamic> _readSeller({Box? source}) {
+    final box = source ?? _settingsBox;
+    final seller = box.get('seller', defaultValue: <String, dynamic>{});
     if (seller is Map) {
       return jsonDecode(jsonEncode(seller)) as Map<String, dynamic>;
     }
@@ -87,13 +89,72 @@ class _HomeDraftState extends State<HomeDraft> {
   }
 
   List<Map<String, dynamic>> _readClients() {
-    final raw = _settingsBox.get('clients', defaultValue: <Map<String, dynamic>>[]) as List;
-    return raw
-        .map(
-          (item) => jsonDecode(jsonEncode(item)) as Map<String, dynamic>
-            ..putIfAbsent('id', () => 'client-${DateTime.now().microsecondsSinceEpoch}'),
-        )
-        .toList();
+    return _normalizeClients(_settingsBox);
+  }
+
+  List<Map<String, dynamic>> _normalizeClients(Box box) {
+    final stored = box.get('clients', defaultValue: <Map<String, dynamic>>[]);
+    if (stored is! List) {
+      return <Map<String, dynamic>>[];
+    }
+
+    final sanitized = <Map<String, dynamic>>[];
+    final updated = <Map<String, dynamic>>[];
+    var mutated = false;
+
+    for (var index = 0; index < stored.length; index++) {
+      final entry = stored[index];
+      if (entry is! Map) {
+        continue;
+      }
+
+      final client = Map<String, dynamic>.from(entry as Map);
+      if (!_hasClientId(client)) {
+        client['id'] = _generateClientId(client, index);
+        mutated = true;
+      }
+
+      updated.add(client);
+      sanitized.add(jsonDecode(jsonEncode(client)) as Map<String, dynamic>);
+    }
+
+    if (mutated) {
+      box.put('clients', updated);
+    }
+
+    return sanitized;
+  }
+
+  bool _hasClientId(Map<String, dynamic> client) {
+    final id = client['id'];
+    return id != null && id.toString().trim().isNotEmpty;
+  }
+
+  String _generateClientId(Map<String, dynamic> client, int index) {
+    final email = client['email']?.toString().trim();
+    if (email != null && email.isNotEmpty) {
+      return 'client-${email.toLowerCase()}';
+    }
+
+    final phone = client['phone']?.toString().trim();
+    if (phone != null && phone.isNotEmpty) {
+      return 'client-$phone';
+    }
+
+    final name = client['name']?.toString().trim();
+    if (name != null && name.isNotEmpty) {
+      final slug = name
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+          .replaceAll(RegExp(r'-+'), '-')
+          .replaceAll(RegExp(r'^-+'), '')
+          .replaceAll(RegExp(r'-+$'), '');
+      if (slug.isNotEmpty) {
+        return 'client-$slug-$index';
+      }
+    }
+
+    return 'client-${DateTime.now().microsecondsSinceEpoch}-$index';
   }
 
   Future<void> _generateDraft() async {
@@ -456,17 +517,11 @@ class _HomeDraftState extends State<HomeDraft> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    ValueListenableBuilder(
+                    ValueListenableBuilder<Box>(
                       valueListenable: _settingsBox.listenable(keys: ['seller', 'clients']),
-                      builder: (context, Box box, _) {
-                        final seller = Map<String, dynamic>.from(
-                          box.get('seller', defaultValue: <String, dynamic>{}) as Map? ?? {},
-                        );
-                        final clients = (box.get('clients', defaultValue: <Map<String, dynamic>>[]) as List)
-                            .map((item) => Map<String, dynamic>.from(item as Map)
-                              ..putIfAbsent('id', () =>
-                                  'client-${DateTime.now().microsecondsSinceEpoch}'))
-                            .toList();
+                      builder: (context, box, _) {
+                        final seller = _readSeller(source: box);
+                        final clients = _normalizeClients(box);
                         if (clients.isEmpty && _selectedClientId != null) {
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             if (mounted) {
