@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
@@ -705,19 +706,6 @@ class _HomeDraftState extends State<HomeDraft> {
     final sellerSubtitle = _formatPartySubtitle(seller);
     final clientSubtitle = _formatPartySubtitle(selectedClient);
 
-    Widget? toSubtitle;
-    if (clientSubtitle.isNotEmpty) {
-      toSubtitle = Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Text(clientSubtitle),
-      );
-    } else if (clients.isEmpty) {
-      toSubtitle = const Padding(
-        padding: EdgeInsets.only(top: 8),
-        child: Text('Add a "To" contact from Clients to continue.'),
-      );
-    }
-
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -770,59 +758,29 @@ class _HomeDraftState extends State<HomeDraft> {
               ),
             ),
             const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.orange.shade100,
-                  child: Icon(Icons.person_outline, color: Colors.orange.shade600),
+            ListTile(
+              onTap: () => _showClientPicker(clients),
+              leading: CircleAvatar(
+                backgroundColor: Colors.orange.shade100,
+                child: Icon(Icons.person_outline, color: Colors.orange.shade600),
+              ),
+              title: Text(
+                _selectedClientTitle(selectedClient, clients.isEmpty),
+                style: const TextStyle(
+                  fontFamily: 'Roboto',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: clients.any((c) => c['id']?.toString() == _selectedClientId)
-                        ? _selectedClientId
-                        : null,
-                    items: clients
-                        .map(
-                          (client) => DropdownMenuItem(
-                            value: client['id']?.toString(),
-                            child: Text(
-                              client['name']?.toString().isEmpty ?? true
-                                  ? 'Unnamed contact'
-                                  : client['name'].toString(),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: clients.isEmpty
-                        ? null
-                        : (value) => setState(() => _selectedClientId = value),
-                    decoration: InputDecoration(
-                      labelText: 'To',
-                      hintText:
-                          clients.isEmpty ? 'Add a "To" contact in Clients' : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Colors.grey.shade400, width: 0.8),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: Colors.grey.shade400, width: 0.8),
-                      ),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.open_in_new),
-                  tooltip: 'Manage "To" contacts',
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ClientsScreen()),
-                  ),
-                ),
-              ],
+              ),
+              subtitle: Text(
+                clientSubtitle.isNotEmpty
+                    ? clientSubtitle
+                    : clients.isEmpty
+                        ? 'Add a "To" contact to continue.'
+                        : 'Tap to choose from saved clients.',
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             ),
-            if (toSubtitle != null) toSubtitle,
             const Divider(),
             Row(
               children: [
@@ -900,5 +858,154 @@ class _HomeDraftState extends State<HomeDraft> {
       );
     }
     return parts.join(' • ');
+  }
+
+  String _selectedClientTitle(
+    Map<String, dynamic> selectedClient,
+    bool noClients,
+  ) {
+    if (selectedClient.isNotEmpty) {
+      final name = selectedClient['name']?.toString().trim() ?? '';
+      if (name.isNotEmpty) {
+        return name;
+      }
+      if ((selectedClient['contact_person']?.toString().trim() ?? '').isNotEmpty) {
+        return selectedClient['contact_person'].toString();
+      }
+      return 'Saved contact';
+    }
+    return noClients ? 'Add To details' : 'Choose a "To" contact';
+  }
+
+  Future<void> _showClientPicker(List<Map<String, dynamic>> clients) async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      isScrollControlled: true,
+      builder: (context) {
+        if (clients.isEmpty) {
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'No saved clients yet',
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Add your first "To" contact to reuse it across documents.',
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add new "To" contact'),
+                      onPressed: () => Navigator.pop(context, 'add_new'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final height = min(MediaQuery.of(context).size.height * 0.7, 420.0);
+        return SafeArea(
+          child: SizedBox(
+            height: height,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Select "To" contact',
+                          style: TextStyle(
+                            fontFamily: 'Roboto',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add),
+                        tooltip: 'Add new contact',
+                        onPressed: () => Navigator.pop(context, 'add_new'),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: clients.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final client = clients[index];
+                      final id = client['id']?.toString();
+                      final title = client['name']?.toString().trim();
+                      final subtitle = _formatPartySubtitle(client);
+                      final isSelected = id == _selectedClientId;
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.orange.shade100,
+                          child: Icon(
+                            isSelected ? Icons.check : Icons.person_outline,
+                            color: Colors.orange.shade600,
+                          ),
+                        ),
+                        title: Text(
+                          (title == null || title.isEmpty) ? 'Unnamed contact' : title,
+                          style: const TextStyle(fontFamily: 'Roboto'),
+                        ),
+                        subtitle: subtitle.isEmpty ? null : Text(subtitle),
+                        onTap: () => Navigator.pop(context, id),
+                      );
+                    },
+                  ),
+                ),
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add new "To" contact'),
+                      onPressed: () => Navigator.pop(context, 'add_new'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted || result == null) return;
+
+    if (result == 'add_new') {
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ClientsScreen()),
+      );
+      return;
+    }
+
+    setState(() => _selectedClientId = result);
   }
 }
