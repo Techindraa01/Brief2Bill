@@ -20,12 +20,6 @@ class HomeDraft extends StatefulWidget {
 
 class _HomeDraftState extends State<HomeDraft> {
   final TextEditingController _desc = TextEditingController();
-  late final TextEditingController _workspaceCtrl;
-  late final TextEditingController _localeCtrl;
-  late final TextEditingController _apiBaseUrlCtrl;
-  late final TextEditingController _apiKeyCtrl;
-  late final TextEditingController _providerCtrl;
-  late final TextEditingController _modelCtrl;
 
   final List<String> _currencies = const ['INR', 'USD', 'EUR', 'GBP', 'AUD', 'CAD'];
   final Box _settingsBox = Hive.box('settings');
@@ -41,25 +35,6 @@ class _HomeDraftState extends State<HomeDraft> {
   @override
   void initState() {
     super.initState();
-    _workspaceCtrl = TextEditingController(
-      text: _settingsBox.get('workspace_id', defaultValue: 'default')?.toString() ?? 'default',
-    );
-    _localeCtrl = TextEditingController(
-      text: _settingsBox.get('locale', defaultValue: 'en-IN')?.toString() ?? 'en-IN',
-    );
-    _apiBaseUrlCtrl = TextEditingController(
-      text: _settingsBox.get('api_base_url', defaultValue: 'http://localhost:8000')?.toString() ??
-          'http://localhost:8000',
-    );
-    _apiKeyCtrl = TextEditingController(
-      text: _settingsBox.get('api_key', defaultValue: '')?.toString() ?? '',
-    );
-    _providerCtrl = TextEditingController(
-      text: _settingsBox.get('provider_override', defaultValue: '')?.toString() ?? '',
-    );
-    _modelCtrl = TextEditingController(
-      text: _settingsBox.get('model_override', defaultValue: '')?.toString() ?? '',
-    );
 
     final clients = _readClients();
     if (clients.isNotEmpty) {
@@ -70,12 +45,6 @@ class _HomeDraftState extends State<HomeDraft> {
   @override
   void dispose() {
     _desc.dispose();
-    _workspaceCtrl.dispose();
-    _localeCtrl.dispose();
-    _apiBaseUrlCtrl.dispose();
-    _apiKeyCtrl.dispose();
-    _providerCtrl.dispose();
-    _modelCtrl.dispose();
     super.dispose();
   }
 
@@ -125,6 +94,27 @@ class _HomeDraftState extends State<HomeDraft> {
     return sanitized;
   }
 
+  String _settingWithDefault(String key, String fallback) {
+    final value = _settingsBox.get(key);
+    if (value == null) {
+      return fallback;
+    }
+    final trimmed = value.toString().trim();
+    return trimmed.isEmpty ? fallback : trimmed;
+  }
+
+  String get _workspaceId => _settingWithDefault('workspace_id', 'default');
+
+  String get _locale => _settingWithDefault('locale', 'en-IN');
+
+  String get _apiBaseUrl => _settingWithDefault('api_base_url', 'http://localhost:8000');
+
+  String get _apiKey => _settingWithDefault('api_key', '');
+
+  String get _providerOverride => _settingWithDefault('provider_override', '');
+
+  String get _modelOverride => _settingWithDefault('model_override', '');
+
   bool _hasClientId(Map<String, dynamic> client) {
     final id = client['id'];
     return id != null && id.toString().trim().isNotEmpty;
@@ -168,18 +158,13 @@ class _HomeDraftState extends State<HomeDraft> {
     );
 
     if (seller.isEmpty || (seller['name']?.toString().isEmpty ?? true)) {
-      _showError('Add your business information before generating documents.');
+      _showError('Add your "From" details before generating documents.');
       return;
     }
     if (client.isEmpty) {
-      _showError('Add at least one client and select it before generating.');
+      _showError('Add at least one "To" contact and select it before generating.');
       return;
     }
-    if (_apiBaseUrlCtrl.text.trim().isEmpty) {
-      _showError('Enter an API base URL (e.g., http://localhost:8000).');
-      return;
-    }
-
     final payload = _buildRequestPayload(seller, client);
     final endpoint = _endpointForSelection();
     final uri = _resolveEndpoint(endpoint);
@@ -227,21 +212,21 @@ class _HomeDraftState extends State<HomeDraft> {
   }
 
   Map<String, String> _buildHeaders() {
-    final workspace = _workspaceCtrl.text.trim().isEmpty
-        ? 'default'
-        : _workspaceCtrl.text.trim();
     final headers = <String, String>{
       'Content-Type': 'application/json',
-      'X-Workspace-Id': workspace,
+      'X-Workspace-Id': _workspaceId,
     };
-    if (_providerCtrl.text.trim().isNotEmpty) {
-      headers['X-Provider'] = _providerCtrl.text.trim();
+    final provider = _providerOverride;
+    if (provider.isNotEmpty) {
+      headers['X-Provider'] = provider;
     }
-    if (_modelCtrl.text.trim().isNotEmpty) {
-      headers['X-Model'] = _modelCtrl.text.trim();
+    final model = _modelOverride;
+    if (model.isNotEmpty) {
+      headers['X-Model'] = model;
     }
-    if (_apiKeyCtrl.text.trim().isNotEmpty) {
-      headers['x-api-key'] = _apiKeyCtrl.text.trim();
+    final apiKey = _apiKey;
+    if (apiKey.isNotEmpty) {
+      headers['x-api-key'] = apiKey;
     }
     return headers;
   }
@@ -258,7 +243,7 @@ class _HomeDraftState extends State<HomeDraft> {
   }
 
   Uri _resolveEndpoint(String path) {
-    var base = _apiBaseUrlCtrl.text.trim();
+    var base = _apiBaseUrl;
     if (base.endsWith('/')) {
       base = base.substring(0, base.length - 1);
     }
@@ -269,9 +254,7 @@ class _HomeDraftState extends State<HomeDraft> {
     Map<String, dynamic> seller,
     Map<String, dynamic> client,
   ) {
-    final locale = _localeCtrl.text.trim().isEmpty
-        ? 'en-IN'
-        : _localeCtrl.text.trim();
+    final locale = _locale;
     final requirement = _desc.text.trim();
 
     final now = DateTime.now();
@@ -327,9 +310,7 @@ class _HomeDraftState extends State<HomeDraft> {
       'locale': locale,
       'requirement': requirement,
       'hints': hints,
-      'workspace_id': _workspaceCtrl.text.trim().isEmpty
-          ? 'default'
-          : _workspaceCtrl.text.trim(),
+      'workspace_id': _workspaceId,
     };
   }
 
@@ -346,9 +327,7 @@ class _HomeDraftState extends State<HomeDraft> {
       bundle['doc_type'] = 'TAX INVOICE';
     }
     bundle['currency'] ??= _currency;
-    bundle['locale'] ??= _localeCtrl.text.trim().isEmpty
-        ? 'en-IN'
-        : _localeCtrl.text.trim();
+    bundle['locale'] ??= _locale;
     bundle['seller'] ??= {};
     bundle['buyer'] ??= {};
     bundle['doc_meta'] ??= {};
@@ -443,10 +422,6 @@ class _HomeDraftState extends State<HomeDraft> {
     } catch (_) {
       return body;
     }
-  }
-
-  void _persistSetting(String key, String value) {
-    _settingsBox.put(key, value);
   }
 
   @override
@@ -544,8 +519,6 @@ class _HomeDraftState extends State<HomeDraft> {
                         return _businessInfoCard(seller, clients, selectedClient);
                       },
                     ),
-                    const SizedBox(height: 20),
-                    _configurationCard(),
                     const SizedBox(height: 20),
                     Text(
                       'WORK REQUIREMENT',
@@ -730,8 +703,20 @@ class _HomeDraftState extends State<HomeDraft> {
   ) {
     final sellerName = seller['name']?.toString() ?? '';
     final sellerSubtitle = _formatPartySubtitle(seller);
-    final clientName = selectedClient['name']?.toString() ?? '';
     final clientSubtitle = _formatPartySubtitle(selectedClient);
+
+    Widget? toSubtitle;
+    if (clientSubtitle.isNotEmpty) {
+      toSubtitle = Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text(clientSubtitle),
+      );
+    } else if (clients.isEmpty) {
+      toSubtitle = const Padding(
+        padding: EdgeInsets.only(top: 8),
+        child: Text('Add a "To" contact from Clients to continue.'),
+      );
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -744,7 +729,7 @@ class _HomeDraftState extends State<HomeDraft> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'BUSINESS INFO',
+              'FROM',
               style: TextStyle(
                 color: Colors.grey.shade600,
                 fontFamily: 'Roboto',
@@ -762,56 +747,82 @@ class _HomeDraftState extends State<HomeDraft> {
                 child: Icon(Icons.perm_identity, color: Colors.blue.shade600),
               ),
               title: Text(
-                sellerName.isEmpty ? 'Add business information' : sellerName,
+                sellerName.isEmpty ? 'Add From details' : sellerName,
                 style: const TextStyle(
                   fontFamily: 'Roboto',
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
               ),
-              subtitle: sellerSubtitle.isEmpty ? null : Text(sellerSubtitle),
+              subtitle: sellerSubtitle.isEmpty
+                  ? const Text('Tap to update your "From" information.')
+                  : Text(sellerSubtitle),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             ),
             const Divider(),
-            ListTile(
-              title: DropdownButtonFormField<String>(
-                value: _selectedClientId,
-                items: clients
-                    .map(
-                      (client) => DropdownMenuItem(
-                        value: client['id']?.toString(),
-                        child: Text(
-                          client['name']?.toString().isEmpty ?? true
-                              ? 'Unnamed client'
-                              : client['name'].toString(),
-                        ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) => setState(() => _selectedClientId = value),
-                decoration: InputDecoration(
-                  labelText: clients.isEmpty ? 'Add a client to continue' : 'Select client',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.grey.shade400, width: 0.8),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: Colors.grey.shade400, width: 0.8),
-                  ),
-                ),
-              ),
-              subtitle: clientSubtitle.isEmpty ? null : Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(clientSubtitle),
-              ),
-              trailing: IconButton(
-                icon: const Icon(Icons.open_in_new),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const ClientsScreen()),
-                ),
+            Text(
+              'TO',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontFamily: 'Roboto',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.orange.shade100,
+                  child: Icon(Icons.person_outline, color: Colors.orange.shade600),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: clients.any((c) => c['id']?.toString() == _selectedClientId)
+                        ? _selectedClientId
+                        : null,
+                    items: clients
+                        .map(
+                          (client) => DropdownMenuItem(
+                            value: client['id']?.toString(),
+                            child: Text(
+                              client['name']?.toString().isEmpty ?? true
+                                  ? 'Unnamed contact'
+                                  : client['name'].toString(),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: clients.isEmpty
+                        ? null
+                        : (value) => setState(() => _selectedClientId = value),
+                    decoration: InputDecoration(
+                      labelText: 'To',
+                      hintText:
+                          clients.isEmpty ? 'Add a "To" contact in Clients' : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.grey.shade400, width: 0.8),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(color: Colors.grey.shade400, width: 0.8),
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.open_in_new),
+                  tooltip: 'Manage "To" contacts',
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const ClientsScreen()),
+                  ),
+                ),
+              ],
+            ),
+            if (toSubtitle != null) toSubtitle,
             const Divider(),
             Row(
               children: [
@@ -864,98 +875,6 @@ class _HomeDraftState extends State<HomeDraft> {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _configurationCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'API CONFIGURATION',
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontFamily: 'Roboto',
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _settingsField(
-              controller: _workspaceCtrl,
-              label: 'Workspace ID',
-              keyName: 'workspace_id',
-            ),
-            _settingsField(
-              controller: _localeCtrl,
-              label: 'Locale',
-              keyName: 'locale',
-            ),
-            _settingsField(
-              controller: _apiBaseUrlCtrl,
-              label: 'API Base URL',
-              keyName: 'api_base_url',
-              hint: 'http://localhost:8000',
-            ),
-            _settingsField(
-              controller: _apiKeyCtrl,
-              label: 'x-api-key (optional)',
-              keyName: 'api_key',
-              obscure: true,
-            ),
-            _settingsField(
-              controller: _providerCtrl,
-              label: 'X-Provider override (optional)',
-              keyName: 'provider_override',
-            ),
-            _settingsField(
-              controller: _modelCtrl,
-              label: 'X-Model override (optional)',
-              keyName: 'model_override',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _settingsField({
-    required TextEditingController controller,
-    required String label,
-    required String keyName,
-    String? hint,
-    bool obscure = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: controller,
-        obscureText: obscure,
-        onChanged: (value) => _persistSetting(keyName, value.trim()),
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: hint,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey.shade600, width: 0.5),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey.shade400, width: 0.8),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.grey.shade400, width: 1.2),
-          ),
         ),
       ),
     );
