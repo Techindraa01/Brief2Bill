@@ -82,13 +82,8 @@ def create_app() -> FastAPI:
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)
 
-<<<<<<< HEAD
-    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-    async def root(request: Request) -> HTMLResponse | JSONResponse:
-=======
     @app.get("/", include_in_schema=False)
     async def root(request: Request) -> Response:
->>>>>>> 2f9e6c58a2b150350a055a2a72ed025f8e7a9323
         """Serve a welcoming landing page or JSON based on the request."""
 
         base_url = str(request.base_url)
