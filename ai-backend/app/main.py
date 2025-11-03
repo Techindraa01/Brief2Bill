@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-from fastapi import Depends, FastAPI
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Iterable
+
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .api.errors import (
@@ -21,12 +27,45 @@ from .core.logging import setup_logging
 from .core.security import enforce_api_key
 from .lifecycles import lifespan
 
+templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+
+
+def _build_links(base_url: str) -> Iterable[tuple[str, dict[str, str]]]:
+    """Return the curated list of root endpoint links."""
+
+    def absolute(path: str) -> str:
+        return f"{base_url}{path.lstrip('/')}"
+
+    entries = (
+        ("docs", {"label": "Interactive API docs", "path": "docs"}),
+        ("redoc", {"label": "Reference documentation", "path": "redoc"}),
+        ("health", {"label": "Service health", "path": "v1/health"}),
+        ("providers", {"label": "Provider catalogue", "path": "v1/providers"}),
+        ("version", {"label": "Service version", "path": "v1/version"}),
+    )
+
+    return tuple(
+        (
+            key,
+            {
+                "label": data["label"],
+                "url": absolute(data["path"]),
+            },
+        )
+        for key, data in entries
+    )
+
 
 def create_app() -> FastAPI:
     settings = get_settings()
     setup_logging(settings.log_level, settings.log_json)
 
-    app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan, dependencies=[Depends(enforce_api_key)])
+    app = FastAPI(
+        title=settings.app_name,
+        version=settings.app_version,
+        lifespan=lifespan,
+        dependencies=[Depends(enforce_api_key)],
+    )
 
     app.add_middleware(RequestIDMiddleware)
     app.add_middleware(LoggingMiddleware)
@@ -42,6 +81,38 @@ def create_app() -> FastAPI:
     app.add_exception_handler(RequestValidationError, validation_error_handler)
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)
+
+    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+    async def root(request: Request) -> HTMLResponse | JSONResponse:
+        """Serve a welcoming landing page or JSON based on the request."""
+
+        base_url = str(request.base_url)
+        if not base_url.endswith("/"):
+            base_url = f"{base_url}/"
+
+        links = _build_links(base_url)
+
+        accepts = request.headers.get("accept", "").lower()
+        wants_json = "application/json" in accepts and "text/html" not in accepts
+
+        if wants_json:
+            return JSONResponse(
+                {
+                    "status": "available",
+                    "service": settings.app_name,
+                    "version": settings.app_version,
+                    "links": {name: link["url"] for name, link in links},
+                }
+            )
+
+        context = {
+            "request": request,
+            "service_name": settings.app_name,
+            "service_version": settings.app_version,
+            "links": links,
+            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+        }
+        return templates.TemplateResponse("home.html", context)
 
     app.include_router(create_v1_router())
     return app
