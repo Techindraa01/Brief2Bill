@@ -782,55 +782,76 @@ class _HomeDraftState extends State<HomeDraft> {
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             ),
             const Divider(),
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.green.shade100,
-                  child: Icon(Icons.account_balance_wallet_outlined, color: Colors.green.shade600),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
+            const SizedBox(height: 8),
+            Text(
+              'CURRENCY',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontFamily: 'Roboto',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.shade100),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
                     value: _currency,
+                    isExpanded: true,
+                    borderRadius: BorderRadius.circular(12),
+                    icon: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Colors.blue.shade600,
+                    ),
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(
+                      fontFamily: 'Roboto',
+                      fontSize: 16,
+                      color: Colors.black87,
+                    ),
                     items: _currencies
                         .map(
                           (c) => DropdownMenuItem(
                             value: c,
-                            child: Text(
-                              c,
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontFamily: 'Roboto',
-                                fontSize: 14,
-                              ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: Colors.blue.shade50,
+                                  child: Icon(
+                                    Icons.currency_exchange,
+                                    color: Colors.blue.shade600,
+                                    size: 18,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(c),
+                              ],
                             ),
                           ),
                         )
                         .toList(),
-                    onChanged: (v) => setState(() => _currency = v ?? 'INR'),
-                    decoration: InputDecoration(
-                      labelText: 'Choose Currency',
-                      labelStyle: TextStyle(
-                        color: Colors.grey[600],
-                        fontFamily: 'Roboto',
-                        fontSize: 16,
-                      ),
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey.shade600, width: 0.5),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey.shade400, width: 0.8),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey.shade400, width: 1.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() => _currency = value);
+                    },
                   ),
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -880,119 +901,25 @@ class _HomeDraftState extends State<HomeDraft> {
   Future<void> _showClientPicker(List<Map<String, dynamic>> clients) async {
     final result = await showModalBottomSheet<String>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) {
-        if (clients.isEmpty) {
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'No saved clients yet',
-                    style: TextStyle(
-                      fontFamily: 'Roboto',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Add your first "To" contact to reuse it across documents.',
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add new "To" contact'),
-                      onPressed: () => Navigator.pop(context, 'add_new'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
+        final sheetContent = clients.isEmpty
+            ? _EmptyClientSheet(onAddNew: () => Navigator.pop(context, 'add_new'))
+            : _ClientPickerSheet(
+                clients: clients,
+                selectedClientId: _selectedClientId,
+                formatSubtitle: _formatPartySubtitle,
+                onSelect: (id) => Navigator.pop(context, id),
+                onAddNew: () => Navigator.pop(context, 'add_new'),
+              );
 
-        final height = min(MediaQuery.of(context).size.height * 0.7, 420.0);
-        return SafeArea(
-          child: SizedBox(
-            height: height,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-                  child: Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Select "To" contact',
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.add),
-                        tooltip: 'Add new contact',
-                        onPressed: () => Navigator.pop(context, 'add_new'),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: clients.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final client = clients[index];
-                      final id = client['id']?.toString();
-                      final title = client['name']?.toString().trim();
-                      final subtitle = _formatPartySubtitle(client);
-                      final isSelected = id == _selectedClientId;
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.orange.shade100,
-                          child: Icon(
-                            isSelected ? Icons.check : Icons.person_outline,
-                            color: Colors.orange.shade600,
-                          ),
-                        ),
-                        title: Text(
-                          (title == null || title.isEmpty) ? 'Unnamed contact' : title,
-                          style: const TextStyle(fontFamily: 'Roboto'),
-                        ),
-                        subtitle: subtitle.isEmpty ? null : Text(subtitle),
-                        onTap: () => Navigator.pop(context, id),
-                      );
-                    },
-                  ),
-                ),
-                const Divider(height: 1),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add new "To" contact'),
-                      onPressed: () => Navigator.pop(context, 'add_new'),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
+          child: SafeArea(top: false, child: sheetContent),
         );
       },
     );
@@ -1007,5 +934,184 @@ class _HomeDraftState extends State<HomeDraft> {
     }
 
     setState(() => _selectedClientId = result);
+  }
+}
+
+class _EmptyClientSheet extends StatelessWidget {
+  const _EmptyClientSheet({required this.onAddNew});
+
+  final VoidCallback onAddNew;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'No saved clients yet',
+            style: TextStyle(
+              fontFamily: 'Roboto',
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Add your first "To" contact to reuse it across documents.',
+            style: TextStyle(
+              fontFamily: 'Roboto',
+              fontSize: 14,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.add),
+              label: const Text('Add new "To" contact'),
+              onPressed: onAddNew,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade600,
+                foregroundColor: Colors.white,
+                textStyle: const TextStyle(
+                  fontFamily: 'Roboto',
+                  fontWeight: FontWeight.w600,
+                ),
+                minimumSize: const Size.fromHeight(48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ClientPickerSheet extends StatelessWidget {
+  const _ClientPickerSheet({
+    required this.clients,
+    required this.selectedClientId,
+    required this.formatSubtitle,
+    required this.onSelect,
+    required this.onAddNew,
+  });
+
+  final List<Map<String, dynamic>> clients;
+  final String? selectedClientId;
+  final String Function(Map<String, dynamic>) formatSubtitle;
+  final ValueChanged<String> onSelect;
+  final VoidCallback onAddNew;
+
+  @override
+  Widget build(BuildContext context) {
+    final height = min(MediaQuery.of(context).size.height * 0.7, 440.0);
+    return SizedBox(
+      height: height,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Select "To" contact',
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: onAddNew,
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Add new'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.blue.shade600,
+                    textStyle: const TextStyle(
+                      fontFamily: 'Roboto',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: ListView.separated(
+              itemCount: clients.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final client = clients[index];
+                final id = client['id']?.toString();
+                final title = client['name']?.toString().trim();
+                final subtitle = formatSubtitle(client);
+                final isSelected = id == selectedClientId;
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.orange.shade100,
+                    child: Icon(
+                      isSelected ? Icons.check_circle : Icons.person_outline,
+                      color: Colors.orange.shade600,
+                    ),
+                  ),
+                  title: Text(
+                    (title == null || title.isEmpty) ? 'Unnamed contact' : title,
+                    style: const TextStyle(
+                      fontFamily: 'Roboto',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: subtitle.isEmpty
+                      ? null
+                      : Text(
+                          subtitle,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontFamily: 'Roboto',
+                          ),
+                        ),
+                  onTap: id == null ? null : () => onSelect(id),
+                );
+              },
+            ),
+          ),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onAddNew,
+                icon: const Icon(Icons.add),
+                label: const Text('Add new "To" contact'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade600,
+                  foregroundColor: Colors.white,
+                  textStyle: const TextStyle(
+                    fontFamily: 'Roboto',
+                    fontWeight: FontWeight.w600,
+                  ),
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
