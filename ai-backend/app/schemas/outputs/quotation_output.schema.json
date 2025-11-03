@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QuotationOutput",
+  "type": "object",
+  "required": ["doc_type","seller","buyer","currency","locale","dates","items","totals","terms"],
+  "properties": {
+    "doc_type": { "type": "string", "const": "QUOTATION" },
+    "currency": { "type": "string", "default": "INR" },
+    "locale": { "type": "string", "default": "en-IN" },
+    "seller": { "$ref": "#/$defs/Party" },
+    "buyer": { "$ref": "#/$defs/Party" },
+    "doc_meta": { "$ref": "#/$defs/DocMeta" },
+    "dates": { "$ref": "#/$defs/DatesQuotation" },
+    "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/Item" } },
+    "totals": { "$ref": "#/$defs/Totals" },
+    "terms": { "$ref": "#/$defs/Terms" },
+    "notes": { "type": "string" },
+    "payment": { "$ref": "#/$defs/Payment" }
+  },
+  "$defs": {
+    "Party": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "gstin": { "type": "string" },
+        "pan": { "type": "string" }
+      }
+    },
+    "DocMeta": {
+      "type": "object",
+      "properties": {
+        "doc_no": { "type": "string" },
+        "ref_no": { "type": "string" },
+        "po_no": { "type": "string" }
+      }
+    },
+    "DatesQuotation": {
+      "type": "object",
+      "required": ["issue_date"],
+      "properties": {
+        "issue_date": { "type": "string", "format": "date" },
+        "valid_till": { "type": "string", "format": "date" }
+      }
+    },
+    "Item": {
+      "type": "object",
+      "required": ["description","qty","unit_price"],
+      "properties": {
+        "description": { "type": "string" },
+        "hsn_sac": { "type": "string" },
+        "qty": { "type": "number" },
+        "unit": { "type": "string", "default": "pcs" },
+        "unit_price": { "type": "number" },
+        "discount": { "type": "number", "default": 0 },
+        "tax_rate": { "type": "number", "default": 0 }
+      }
+    },
+    "Totals": {
+      "type": "object",
+      "required": ["subtotal","discount_total","tax_total","shipping","round_off","grand_total"],
+      "properties": {
+        "subtotal": { "type": "number" },
+        "discount_total": { "type": "number" },
+        "tax_total": { "type": "number" },
+        "shipping": { "type": "number", "default": 0 },
+        "round_off": { "type": "number", "default": 0 },
+        "grand_total": { "type": "number" },
+        "amount_in_words": { "type": "string" }
+      }
+    },
+    "Terms": {
+      "type": "object",
+      "required": ["bullets"],
+      "properties": {
+        "title": { "type": "string", "default": "Terms & Conditions" },
+        "bullets": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      }
+    },
+    "Payment": {
+      "type": "object",
+      "properties": {
+        "mode": { "type": "string", "enum": ["UPI","BANK_TRANSFER","OTHER"] },
+        "upi_deeplink": { "type": "string" },
+        "instructions": { "type": "string" }
+      }
+    }
+  }
+}
