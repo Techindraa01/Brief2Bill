@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import json
 import sys
-from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
 
 import httpx
 
@@ -16,6 +17,7 @@ class LastState:
 
     bundle: Optional[Dict[str, Any]] = None
     draft: Optional[Dict[str, Any]] = None
+    headers: Dict[str, str] = field(default_factory=dict)
 
 
 class TerminalUI:
@@ -25,6 +27,7 @@ class TerminalUI:
         self.base_url = base_url.rstrip("/")
         self.client = httpx.Client(base_url=self.base_url, timeout=30.0)
         self.state = LastState()
+        self.samples_dir = Path(__file__).resolve().parent / "samples"
 
     def run(self) -> None:
         try:
@@ -44,6 +47,9 @@ class TerminalUI:
                     "7": self.repair_bundle,
                     "8": self.compute_totals,
                     "9": self.generate_upi,
+                    "10": self.generate_quotation,
+                    "11": self.generate_invoice,
+                    "12": self.generate_project_brief,
                 }.get(choice)
                 if handler is None:
                     print("Unknown option. Try again.\n")
@@ -61,16 +67,19 @@ class TerminalUI:
         print(
             """
 =================== Brief2Bill Terminal UI ===================
-1) GET  /v1/healthz
-2) GET  /v1/providers
-3) POST /v1/providers/select
-4) GET  /v1/providers/active
-5) POST /v1/draft
-6) POST /v1/validate
-7) POST /v1/repair
-8) POST /v1/compute/totals
-9) POST /v1/upi/deeplink
-q) Quit
+ 1) GET  /v1/healthz
+ 2) GET  /v1/providers
+ 3) POST /v1/providers/select
+ 4) GET  /v1/providers/active
+ 5) POST /v1/draft
+ 6) POST /v1/validate
+ 7) POST /v1/repair
+ 8) POST /v1/compute/totals
+ 9) POST /v1/upi/deeplink
+10) POST /v1/generate/quotation
+11) POST /v1/generate/invoice
+12) POST /v1/generate/project-brief
+ q) Quit
 ==============================================================
 """
         )
@@ -141,6 +150,27 @@ q) Quit
             self.state.bundle = data
             if data.get("drafts"):
                 self.state.draft = data["drafts"][0]
+
+    # ------------------------------------------------------------------
+    # Generation endpoints
+
+    def generate_quotation(self) -> None:
+        self._generate_with_payload(
+            endpoint="/v1/generate/quotation",
+            default_payload="generate_quotation.json",
+        )
+
+    def generate_invoice(self) -> None:
+        self._generate_with_payload(
+            endpoint="/v1/generate/invoice",
+            default_payload="generate_invoice.json",
+        )
+
+    def generate_project_brief(self) -> None:
+        self._generate_with_payload(
+            endpoint="/v1/generate/project-brief",
+            default_payload="generate_project_brief.json",
+        )
 
     def validate_bundle(self) -> None:
         bundle = self._get_bundle_input()
@@ -240,6 +270,157 @@ q) Quit
         except json.JSONDecodeError as exc:
             print(f"Invalid JSON: {exc}")
             return None
+
+    # ------------------------------------------------------------------
+    # Helpers for generation endpoints
+
+    def _generate_with_payload(self, endpoint: str, default_payload: str) -> None:
+        payload = self._load_payload(default_payload)
+        if payload is None:
+            return
+        headers = self._prompt_headers()
+        if headers is None:
+            return
+        try:
+            response = self.client.post(endpoint, json=payload, headers=headers)
+        except httpx.HTTPError as exc:
+            print(f"HTTP error: {exc}")
+            return
+        self._print_response(response)
+
+    def _load_payload(self, default_payload: str) -> Optional[Dict[str, Any]]:
+        default_path = self.samples_dir / default_payload
+        prompt = f"Payload file path [default: {default_path}]: "
+        raw_path = input(prompt).strip()
+        path = Path(raw_path) if raw_path else default_path
+        try:
+            with path.open("r", encoding="utf-8") as handle:
+                data = json.load(handle)
+        except FileNotFoundError:
+            print(f"File not found: {path}")
+            return None
+        except json.JSONDecodeError as exc:
+            print(f"Invalid JSON in {path}: {exc}")
+            return None
+        return data
+
+    def _prompt_headers(self) -> Optional[Dict[str, str]]:
+        headers: Dict[str, str] = {}
+        last = self.state.headers
+        workspace_default = last.get("X-Workspace-Id", "default")
+        api_key_default = last.get("x-api-key", "")
+        provider = last.get("X-Provider")
+        model = last.get("X-Model")
+
+        provider, model = self._maybe_pick_provider(provider, model)
+
+        if provider:
+            headers["X-Provider"] = provider
+        if model:
+            headers["X-Model"] = model
+
+        workspace = (
+            input(f"Workspace id [{workspace_default}]: ").strip() or workspace_default
+        )
+        if not workspace:
+            print("Workspace id is required.")
+            return None
+        headers["X-Workspace-Id"] = workspace
+
+        api_key = input("x-api-key (blank to omit): ").strip() or api_key_default
+        if api_key:
+            headers["x-api-key"] = api_key
+
+        self.state.headers = headers
+        return headers
+
+    def _maybe_pick_provider(
+        self, provider: Optional[str], model: Optional[str]
+    ) -> Tuple[Optional[str], Optional[str]]:
+        choice = input("Load enabled providers from API? [Y/n]: ").strip().lower()
+        if choice not in {"", "y", "yes"}:
+            manual_provider = input(
+                f"X-Provider override ({provider or 'leave blank'}): "
+            ).strip()
+            manual_model = input(f"X-Model override ({model or 'leave blank'}): ").strip()
+            return (
+                manual_provider or provider,
+                manual_model or model,
+            )
+
+        try:
+            response = self.client.get("/v1/providers")
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            print(f"Unable to load providers: {exc}")
+            return provider, model
+
+        try:
+            data = response.json()
+        except json.JSONDecodeError as exc:
+            print(f"Invalid provider response: {exc}")
+            return provider, model
+
+        providers = [
+            p for p in data.get("providers", []) if p.get("enabled")
+        ]
+        if not providers:
+            print("No enabled providers available. Falling back to manual entry.")
+            return provider, model
+
+        for idx, prov in enumerate(providers, start=1):
+            print(f"{idx}) {prov.get('name')} ({len(prov.get('models', []))} models)")
+
+        selection = input("Select provider number (blank to skip): ").strip()
+        if not selection:
+            manual_provider = input(
+                f"X-Provider override ({provider or 'leave blank'}): "
+            ).strip()
+            manual_model = input(f"X-Model override ({model or 'leave blank'}): ").strip()
+            return (
+                manual_provider or provider,
+                manual_model or model,
+            )
+
+        try:
+            provider_index = int(selection) - 1
+            chosen = providers[provider_index]
+        except (ValueError, IndexError):
+            print("Invalid selection. Falling back to manual entry.")
+            manual_provider = input(
+                f"X-Provider override ({provider or 'leave blank'}): "
+            ).strip()
+            manual_model = input(f"X-Model override ({model or 'leave blank'}): ").strip()
+            return (
+                manual_provider or provider,
+                manual_model or model,
+            )
+
+        provider_name = chosen.get("name")
+        models = chosen.get("models", [])
+        if not models:
+            print(
+                f"Provider {provider_name} has no models listed. Enter model manually."
+            )
+            manual_model = input(f"X-Model override ({model or 'leave blank'}): ").strip()
+            return provider_name, manual_model or model
+
+        for idx, model_entry in enumerate(models, start=1):
+            model_id = model_entry.get("id")
+            family = model_entry.get("family")
+            label = model_id if not family else f"{model_id} ({family})"
+            print(f"  {idx}) {label}")
+
+        model_selection = input("Select model number (blank to keep previous): ").strip()
+        chosen_model = model
+        if model_selection:
+            try:
+                model_idx = int(model_selection) - 1
+                chosen_model = models[model_idx].get("id")
+            except (ValueError, IndexError):
+                print("Invalid model selection. Keeping previous value.")
+
+        return provider_name, chosen_model
 
 
 def main() -> None:

@@ -3,9 +3,21 @@ import 'package:flutter/material.dart';
 class CustTextFields extends StatefulWidget {
   final String title;
   final TextEditingController textEditingController;
+  final TextInputType keyboardType;
+  final int maxLines;
+  final String? hintText;
+  final TextCapitalization textCapitalization;
 
 
-  const CustTextFields({super.key, required this.title, required this.textEditingController});
+  const CustTextFields({
+    super.key,
+    required this.title,
+    required this.textEditingController,
+    this.keyboardType = TextInputType.text,
+    this.maxLines = 1,
+    this.hintText,
+    this.textCapitalization = TextCapitalization.sentences,
+  });
 
   @override
   State<CustTextFields> createState() => _CustTextFieldsState();
@@ -22,7 +34,9 @@ class _CustTextFieldsState extends State<CustTextFields> {
         SizedBox(height: MediaQuery.heightOf(context) * 0.01),
         TextField(
           controller: widget.textEditingController,
-          maxLines: 1,
+          maxLines: widget.maxLines,
+          keyboardType: widget.keyboardType,
+          textCapitalization: widget.textCapitalization,
           onChanged: (_) => setState(() {}),
           decoration:  InputDecoration(
               border: OutlineInputBorder(
@@ -37,7 +51,7 @@ class _CustTextFieldsState extends State<CustTextFields> {
                 borderRadius: BorderRadius.circular(10),
                 borderSide:  BorderSide(color: Colors.grey.shade600, width: 2),
               ),
-
+              hintText: widget.hintText,
           ),
         ),
         SizedBox(height: MediaQuery.heightOf(context) * 0.01),
