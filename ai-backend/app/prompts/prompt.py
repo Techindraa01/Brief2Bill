@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, Tuple
 
@@ -59,7 +60,15 @@ def _load_schema(filename: str) -> Dict[str, Any]:
 
 
 def _json_dump(data: Any) -> str:
-    return json.dumps(data, ensure_ascii=False, sort_keys=True)
+    """Serialize data to JSON, handling date/datetime objects."""
+
+    def default_serializer(obj: Any) -> str:
+        """Custom serializer for non-JSON-serializable objects."""
+        if isinstance(obj, (date, datetime)):
+            return obj.isoformat()
+        raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
+    return json.dumps(data, ensure_ascii=False, sort_keys=True, default=default_serializer)
 
 
 def build_quotation_prompt(request: GenerationRequest) -> Tuple[str, str, Dict[str, Any]]:
