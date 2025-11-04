@@ -672,6 +672,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [API Documentation](http://localhost:8000/docs) - Interactive API docs
 - [Backend README](ai-backend/README.md) - Backend-specific documentation
 - [Implementation Summary](ai-backend/IMPLEMENTATION_SUMMARY.md) - Technical details
+- [AI Prompt Improvements](ai-backend/PROMPT_IMPROVEMENTS.md) - Enhanced AI prompts documentation
+- [Prompt Quick Reference](ai-backend/PROMPT_QUICK_REFERENCE.md) - Quick reference for AI prompts
 
 ### Getting Help
 - 📧 Email: support@brief2bill.com
