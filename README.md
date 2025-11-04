@@ -116,6 +116,8 @@ A cross-platform application featuring:
    pip install -r requirements.txt
    ```
 
+   > **Note:** This includes Streamlit for the web UI testing interface
+
 4. **Configure environment variables:**
 
    Create a `.env` file in the `ai-backend` directory:
@@ -153,7 +155,46 @@ A cross-platform application featuring:
    Open your browser and navigate to:
    - API Root: http://localhost:8000
    - API Docs: http://localhost:8000/docs
-   - Health Check: http://localhost:8000/v1/health
+   - Health Check: http://localhost:8000/v1/healthz
+
+---
+
+### 🎨 Streamlit Web UI (Optional - For Testing)
+
+Brief2Bill includes a beautiful Streamlit-based web interface for testing the API!
+
+1. **Install Streamlit (if not already installed):**
+   ```bash
+   pip install streamlit
+   ```
+
+2. **Start the Streamlit UI:**
+
+   **Option 1 - Using batch script (Windows):**
+   ```bash
+   run_streamlit.bat
+   ```
+
+   **Option 2 - Manual start:**
+   ```bash
+   streamlit run streamlit_app.py
+   ```
+
+3. **Open in browser:**
+   - The UI will automatically open at http://localhost:8501
+   - If not, manually navigate to http://localhost:8501
+
+4. **Features:**
+   - 📋 Interactive forms for quotation generation
+   - 🤖 AI provider and model selection
+   - 🏥 Health check monitoring
+   - 📊 Real-time response viewing
+   - 💾 Download generated JSON
+   - 🎨 Beautiful, modern UI
+
+5. **Quick Start Guide:**
+   - See [QUICK_START.md](ai-backend/QUICK_START.md) for detailed instructions
+   - See [STREAMLIT_UI_README.md](ai-backend/STREAMLIT_UI_README.md) for full documentation
 
 ---
 

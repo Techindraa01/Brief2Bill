@@ -7,5 +7,6 @@ pydantic
 pydantic-settings
 redis
 slowapi
+streamlit
 structlog
 uvicorn
